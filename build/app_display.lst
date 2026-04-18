@@ -1,0 +1,140 @@
+ARM GAS  /tmp/ccKzqzt5.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"app_display.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.UserInterfaceTask,"ax",%progbits
+  16              		.align	1
+  17              		.global	UserInterfaceTask
+  18              		.arch armv7-m
+  19              		.syntax unified
+  20              		.thumb
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	UserInterfaceTask:
+  25              	.LVL0:
+  26              	.LFB69:
+  27              		.file 1 "App/Display/app_display.c"
+   1:App/Display/app_display.c **** /* App/Sensor/app_sensor.c */
+   2:App/Display/app_display.c **** #include "app_display.h"
+   3:App/Display/app_display.c **** #include "app.h"
+   4:App/Display/app_display.c **** #include "oled.h"
+   5:App/Display/app_display.c **** 
+   6:App/Display/app_display.c **** SoftI2C_Type OLED_I2C;
+   7:App/Display/app_display.c **** 
+   8:App/Display/app_display.c **** void UserInterfaceTask(void *argument)
+   9:App/Display/app_display.c **** {
+  28              		.loc 1 9 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		.loc 1 9 1 is_stmt 0 view .LVU1
+  33 0000 08B5     		push	{r3, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 3, -8
+  37              		.cfi_offset 14, -4
+  10:App/Display/app_display.c ****   OLED_I2C.port = GPIOB;
+  38              		.loc 1 10 3 is_stmt 1 view .LVU2
+  39              		.loc 1 10 17 is_stmt 0 view .LVU3
+  40 0002 0748     		ldr	r0, .L4
+  41              	.LVL1:
+  42              		.loc 1 10 17 view .LVU4
+  43 0004 074B     		ldr	r3, .L4+4
+  44 0006 0360     		str	r3, [r0]
+  11:App/Display/app_display.c ****   OLED_I2C.scl_pin = GPIO_PIN_10;
+  45              		.loc 1 11 3 is_stmt 1 view .LVU5
+  46              		.loc 1 11 20 is_stmt 0 view .LVU6
+  47 0008 4FF48063 		mov	r3, #1024
+ARM GAS  /tmp/ccKzqzt5.s 			page 2
+
+
+  48 000c 8380     		strh	r3, [r0, #4]	@ movhi
+  12:App/Display/app_display.c ****   OLED_I2C.sda_pin = GPIO_PIN_11;
+  49              		.loc 1 12 3 is_stmt 1 view .LVU7
+  50              		.loc 1 12 20 is_stmt 0 view .LVU8
+  51 000e 4FF40063 		mov	r3, #2048
+  52 0012 C380     		strh	r3, [r0, #6]	@ movhi
+  13:App/Display/app_display.c ****   OLED_Init(&OLED_I2C);
+  53              		.loc 1 13 3 is_stmt 1 view .LVU9
+  54 0014 FFF7FEFF 		bl	OLED_Init
+  55              	.LVL2:
+  14:App/Display/app_display.c ****   int16_t count = 0;
+  56              		.loc 1 14 3 view .LVU10
+  57              	.L2:
+  15:App/Display/app_display.c **** 
+  16:App/Display/app_display.c ****     for(;;) {
+  58              		.loc 1 16 5 discriminator 1 view .LVU11
+  17:App/Display/app_display.c ****             // count++;
+  18:App/Display/app_display.c ****             // // OLED_ShowNumF6X16(0, 0, encoder_ticks[0], 4, 1);
+  19:App/Display/app_display.c ****             // // OLED_ShowNumF6X16(0, 2, (int16_t)(target_vx * 10), 4, 1);
+  20:App/Display/app_display.c ****             // // OLED_ShowNumF6X16(0, 4, (int16_t)(target_vy * 10), 4, 1);
+  21:App/Display/app_display.c ****             // // OLED_ShowNumF6X16(0, 6, (int16_t)(target_wz * 10), 4, 1);
+  22:App/Display/app_display.c ****             // // OLED_ShowNumF6X16(1, 6, g_mpu_id, 4, 1);
+  23:App/Display/app_display.c ****             // // OLED_ShowFloatF6X16(0, 0, target_vx, 5, 2, 1);
+  24:App/Display/app_display.c ****             // // OLED_ShowFloatF6X16(0, 2, target_wheel_speed[0], 5, 2, 1);
+  25:App/Display/app_display.c ****             // OLED_ShowFloatF6X16(0, 0, current_vx, 5, 3, 1);
+  26:App/Display/app_display.c ****             // OLED_ShowFloatF6X16(0, 2, current_vy, 5, 3, 1);
+  27:App/Display/app_display.c ****             // OLED_ShowFloatF6X16(0, 4, current_wz, 5, 3, 1);
+  28:App/Display/app_display.c ****             // OLED_ShowNumF6X16(100, 0, count, 4, 1);
+  29:App/Display/app_display.c ****             // // OLED_ShowNumF6X16(100, 2, GetTaskStackWaterMark, 4, 1);
+  30:App/Display/app_display.c ****             osDelay(200);
+  59              		.loc 1 30 13 discriminator 1 view .LVU12
+  60 0018 C820     		movs	r0, #200
+  61 001a FFF7FEFF 		bl	osDelay
+  62              	.LVL3:
+  16:App/Display/app_display.c ****             // count++;
+  63              		.loc 1 16 10 discriminator 1 view .LVU13
+  64 001e FBE7     		b	.L2
+  65              	.L5:
+  66              		.align	2
+  67              	.L4:
+  68 0020 00000000 		.word	.LANCHOR0
+  69 0024 000C0140 		.word	1073810432
+  70              		.cfi_endproc
+  71              	.LFE69:
+  73              		.global	OLED_I2C
+  74              		.section	.bss.OLED_I2C,"aw",%nobits
+  75              		.align	2
+  76              		.set	.LANCHOR0,. + 0
+  79              	OLED_I2C:
+  80 0000 00000000 		.space	8
+  80      00000000 
+  81              		.text
+  82              	.Letext0:
+  83              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+  84              		.file 3 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+  85              		.file 4 "BSP/Inc/bsp_soft_i2c.h"
+  86              		.file 5 "Hardware/OLED/oled.h"
+ARM GAS  /tmp/ccKzqzt5.s 			page 3
+
+
+  87              		.file 6 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+  88              		.file 7 "Core/Inc/global.h"
+  89              		.file 8 "App/app.h"
+ARM GAS  /tmp/ccKzqzt5.s 			page 4
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 app_display.c
+     /tmp/ccKzqzt5.s:16     .text.UserInterfaceTask:0000000000000000 $t
+     /tmp/ccKzqzt5.s:24     .text.UserInterfaceTask:0000000000000000 UserInterfaceTask
+     /tmp/ccKzqzt5.s:68     .text.UserInterfaceTask:0000000000000020 $d
+     /tmp/ccKzqzt5.s:79     .bss.OLED_I2C:0000000000000000 OLED_I2C
+     /tmp/ccKzqzt5.s:75     .bss.OLED_I2C:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+OLED_Init
+osDelay

@@ -1,0 +1,10 @@
+{
+    "stm32cube.build.enableAutoConfig": false,
+    "makefile.configurations": [
+        {
+            "name": "Default",
+            "makefilePath": "${workspaceFolder}/Makefile",
+            "makeArgs": ["-j4"]
+        }
+    ]
+}

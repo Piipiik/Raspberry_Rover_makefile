@@ -1,0 +1,1198 @@
+ARM GAS  /tmp/cc7JZ3JR.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"bsp_soft_i2c.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.I2C_W_SCL,"ax",%progbits
+  16              		.align	1
+  17              		.arch armv7-m
+  18              		.syntax unified
+  19              		.thumb
+  20              		.thumb_func
+  21              		.fpu softvfp
+  23              	I2C_W_SCL:
+  24              	.LVL0:
+  25              	.LFB65:
+  26              		.file 1 "BSP/Src/bsp_soft_i2c.c"
+   1:BSP/Src/bsp_soft_i2c.c **** #include "bsp_soft_i2c.h"
+   2:BSP/Src/bsp_soft_i2c.c **** 
+   3:BSP/Src/bsp_soft_i2c.c **** /* ==============================================================================
+   4:BSP/Src/bsp_soft_i2c.c ****  * 【移植适配区】 修改此处以适配不同的 GPIO 和 主频
+   5:BSP/Src/bsp_soft_i2c.c ****  * ============================================================================== */
+   6:BSP/Src/bsp_soft_i2c.c **** 
+   7:BSP/Src/bsp_soft_i2c.c **** // 1. 定义操作的端口和引脚 (根据 CubeMX/原理图 修改)
+   8:BSP/Src/bsp_soft_i2c.c **** 
+   9:BSP/Src/bsp_soft_i2c.c **** // #define I2C_PORT        GPIOC
+  10:BSP/Src/bsp_soft_i2c.c **** // #define I2C_SCL_PIN     GPIO_PIN_10
+  11:BSP/Src/bsp_soft_i2c.c **** // #define I2C_SDA_PIN     GPIO_PIN_11
+  12:BSP/Src/bsp_soft_i2c.c **** 
+  13:BSP/Src/bsp_soft_i2c.c **** // 2. 软件延时参数
+  14:BSP/Src/bsp_soft_i2c.c **** // 经验值：72MHz主频下，30 大约对应 100~200kHz 速率，非常稳健
+  15:BSP/Src/bsp_soft_i2c.c **** // 如果主频更高 (如 F4/H7)，请按比例增大此值
+  16:BSP/Src/bsp_soft_i2c.c **** #define I2C_DELAY_CNT   100
+  17:BSP/Src/bsp_soft_i2c.c **** 
+  18:BSP/Src/bsp_soft_i2c.c **** // // 3. 底层引脚操作宏 (封装 HAL 库函数)
+  19:BSP/Src/bsp_soft_i2c.c **** 
+  20:BSP/Src/bsp_soft_i2c.c **** // // 写引脚电平
+  21:BSP/Src/bsp_soft_i2c.c **** // #define I2C_W_SCL(x)    HAL_GPIO_WritePin(I2C_PORT, I2C_SCL_PIN, (x) ? GPIO_PIN_SET : GPIO_PIN_R
+  22:BSP/Src/bsp_soft_i2c.c **** // #define I2C_W_SDA(x)    HAL_GPIO_WritePin(I2C_PORT, I2C_SDA_PIN, (x) ? GPIO_PIN_SET : GPIO_PIN_R
+  23:BSP/Src/bsp_soft_i2c.c **** // // 读引脚电平
+  24:BSP/Src/bsp_soft_i2c.c **** // #define I2C_R_SDA()     HAL_GPIO_ReadPin(I2C_PORT, I2C_SDA_PIN)
+  25:BSP/Src/bsp_soft_i2c.c **** 
+  26:BSP/Src/bsp_soft_i2c.c **** // --- 替换为寄存器操作 (速度提升 5-10 倍) ---
+  27:BSP/Src/bsp_soft_i2c.c **** // // BSRR 低 16 位是置 1 (High)，高 16 位是置 0 (Low)
+  28:BSP/Src/bsp_soft_i2c.c **** // #define I2C_W_SCL(x)    ((x) ? (I2C_PORT->BSRR = I2C_SCL_PIN) : (I2C_PORT->BSRR = (uint32_t)I2C_
+  29:BSP/Src/bsp_soft_i2c.c **** // #define I2C_W_SDA(x)    ((x) ? (I2C_PORT->BSRR = I2C_SDA_PIN) : (I2C_PORT->BSRR = (uint32_t)I2C_
+  30:BSP/Src/bsp_soft_i2c.c **** // // 读引脚 IDR
+  31:BSP/Src/bsp_soft_i2c.c **** // #define I2C_R_SDA()     ((GPIOB->IDR & GPIO_PIN_11) != 0)
+  32:BSP/Src/bsp_soft_i2c.c **** 
+ARM GAS  /tmp/cc7JZ3JR.s 			page 2
+
+
+  33:BSP/Src/bsp_soft_i2c.c **** static void I2C_W_SCL(SoftI2C_Type* i2c, uint8_t x) {
+  27              		.loc 1 33 53 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  34:BSP/Src/bsp_soft_i2c.c ****     if(x) i2c->port->BSRR = i2c->scl_pin;
+  32              		.loc 1 34 5 view .LVU1
+  33              		.loc 1 34 7 is_stmt 0 view .LVU2
+  34 0000 19B1     		cbz	r1, .L2
+  35              		.loc 1 34 11 is_stmt 1 discriminator 1 view .LVU3
+  36              		.loc 1 34 14 is_stmt 0 discriminator 1 view .LVU4
+  37 0002 0368     		ldr	r3, [r0]
+  38              		.loc 1 34 32 discriminator 1 view .LVU5
+  39 0004 8288     		ldrh	r2, [r0, #4]
+  40              		.loc 1 34 27 discriminator 1 view .LVU6
+  41 0006 1A61     		str	r2, [r3, #16]
+  42 0008 7047     		bx	lr
+  43              	.L2:
+  35:BSP/Src/bsp_soft_i2c.c ****     else  i2c->port->BSRR = (uint32_t)i2c->scl_pin << 16;
+  44              		.loc 1 35 11 is_stmt 1 view .LVU7
+  45              		.loc 1 35 42 is_stmt 0 view .LVU8
+  46 000a 8388     		ldrh	r3, [r0, #4]
+  47              		.loc 1 35 14 view .LVU9
+  48 000c 0268     		ldr	r2, [r0]
+  49              		.loc 1 35 52 view .LVU10
+  50 000e 1B04     		lsls	r3, r3, #16
+  51              		.loc 1 35 27 view .LVU11
+  52 0010 1361     		str	r3, [r2, #16]
+  36:BSP/Src/bsp_soft_i2c.c **** }
+  53              		.loc 1 36 1 view .LVU12
+  54 0012 7047     		bx	lr
+  55              		.cfi_endproc
+  56              	.LFE65:
+  58              		.section	.text.I2C_W_SDA,"ax",%progbits
+  59              		.align	1
+  60              		.syntax unified
+  61              		.thumb
+  62              		.thumb_func
+  63              		.fpu softvfp
+  65              	I2C_W_SDA:
+  66              	.LVL1:
+  67              	.LFB66:
+  37:BSP/Src/bsp_soft_i2c.c **** 
+  38:BSP/Src/bsp_soft_i2c.c **** static void I2C_W_SDA(SoftI2C_Type* i2c, uint8_t x) {
+  68              		.loc 1 38 53 is_stmt 1 view -0
+  69              		.cfi_startproc
+  70              		@ args = 0, pretend = 0, frame = 0
+  71              		@ frame_needed = 0, uses_anonymous_args = 0
+  72              		@ link register save eliminated.
+  39:BSP/Src/bsp_soft_i2c.c ****     if(x) i2c->port->BSRR = i2c->sda_pin;
+  73              		.loc 1 39 5 view .LVU14
+  74              		.loc 1 39 7 is_stmt 0 view .LVU15
+  75 0000 19B1     		cbz	r1, .L5
+  76              		.loc 1 39 11 is_stmt 1 discriminator 1 view .LVU16
+  77              		.loc 1 39 14 is_stmt 0 discriminator 1 view .LVU17
+  78 0002 0368     		ldr	r3, [r0]
+ARM GAS  /tmp/cc7JZ3JR.s 			page 3
+
+
+  79              		.loc 1 39 32 discriminator 1 view .LVU18
+  80 0004 C288     		ldrh	r2, [r0, #6]
+  81              		.loc 1 39 27 discriminator 1 view .LVU19
+  82 0006 1A61     		str	r2, [r3, #16]
+  83 0008 7047     		bx	lr
+  84              	.L5:
+  40:BSP/Src/bsp_soft_i2c.c ****     else  i2c->port->BSRR = (uint32_t)i2c->sda_pin << 16;
+  85              		.loc 1 40 11 is_stmt 1 view .LVU20
+  86              		.loc 1 40 42 is_stmt 0 view .LVU21
+  87 000a C388     		ldrh	r3, [r0, #6]
+  88              		.loc 1 40 14 view .LVU22
+  89 000c 0268     		ldr	r2, [r0]
+  90              		.loc 1 40 52 view .LVU23
+  91 000e 1B04     		lsls	r3, r3, #16
+  92              		.loc 1 40 27 view .LVU24
+  93 0010 1361     		str	r3, [r2, #16]
+  41:BSP/Src/bsp_soft_i2c.c **** }
+  94              		.loc 1 41 1 view .LVU25
+  95 0012 7047     		bx	lr
+  96              		.cfi_endproc
+  97              	.LFE66:
+  99              		.section	.text.I2C_R_SDA,"ax",%progbits
+ 100              		.align	1
+ 101              		.syntax unified
+ 102              		.thumb
+ 103              		.thumb_func
+ 104              		.fpu softvfp
+ 106              	I2C_R_SDA:
+ 107              	.LVL2:
+ 108              	.LFB67:
+  42:BSP/Src/bsp_soft_i2c.c **** 
+  43:BSP/Src/bsp_soft_i2c.c **** static uint8_t I2C_R_SDA(SoftI2C_Type* i2c) {
+ 109              		.loc 1 43 45 is_stmt 1 view -0
+ 110              		.cfi_startproc
+ 111              		@ args = 0, pretend = 0, frame = 0
+ 112              		@ frame_needed = 0, uses_anonymous_args = 0
+ 113              		@ link register save eliminated.
+  44:BSP/Src/bsp_soft_i2c.c ****     return (i2c->port->IDR & i2c->sda_pin) != 0;
+ 114              		.loc 1 44 5 view .LVU27
+ 115              		.loc 1 44 16 is_stmt 0 view .LVU28
+ 116 0000 0368     		ldr	r3, [r0]
+ 117              		.loc 1 44 22 view .LVU29
+ 118 0002 9A68     		ldr	r2, [r3, #8]
+ 119              		.loc 1 44 33 view .LVU30
+ 120 0004 C388     		ldrh	r3, [r0, #6]
+ 121              		.loc 1 44 44 view .LVU31
+ 122 0006 1A42     		tst	r2, r3
+  45:BSP/Src/bsp_soft_i2c.c **** }
+ 123              		.loc 1 45 1 view .LVU32
+ 124 0008 14BF     		ite	ne
+ 125 000a 0120     		movne	r0, #1
+ 126              	.LVL3:
+ 127              		.loc 1 45 1 view .LVU33
+ 128 000c 0020     		moveq	r0, #0
+ 129 000e 7047     		bx	lr
+ 130              		.cfi_endproc
+ 131              	.LFE67:
+ARM GAS  /tmp/cc7JZ3JR.s 			page 4
+
+
+ 133              		.section	.text.MyI2C_Delay,"ax",%progbits
+ 134              		.align	1
+ 135              		.syntax unified
+ 136              		.thumb
+ 137              		.thumb_func
+ 138              		.fpu softvfp
+ 140              	MyI2C_Delay:
+ 141              	.LFB68:
+  46:BSP/Src/bsp_soft_i2c.c **** 
+  47:BSP/Src/bsp_soft_i2c.c **** /* ==============================================================================
+  48:BSP/Src/bsp_soft_i2c.c ****  * 【通用逻辑区】 以下代码通常不需要修改
+  49:BSP/Src/bsp_soft_i2c.c ****  * ============================================================================== */
+  50:BSP/Src/bsp_soft_i2c.c **** 
+  51:BSP/Src/bsp_soft_i2c.c **** // #define MyI2C_Delay()
+  52:BSP/Src/bsp_soft_i2c.c **** 
+  53:BSP/Src/bsp_soft_i2c.c **** /**
+  54:BSP/Src/bsp_soft_i2c.c ****   * @brief  微秒级软件延时 (非精确，仅用于控制时序间隔)
+  55:BSP/Src/bsp_soft_i2c.c ****   */
+  56:BSP/Src/bsp_soft_i2c.c **** static void MyI2C_Delay(void)
+  57:BSP/Src/bsp_soft_i2c.c **** {
+ 142              		.loc 1 57 1 is_stmt 1 view -0
+ 143              		.cfi_startproc
+ 144              		@ args = 0, pretend = 0, frame = 8
+ 145              		@ frame_needed = 0, uses_anonymous_args = 0
+ 146              		@ link register save eliminated.
+ 147 0000 82B0     		sub	sp, sp, #8
+ 148              	.LCFI0:
+ 149              		.cfi_def_cfa_offset 8
+  58:BSP/Src/bsp_soft_i2c.c ****     volatile uint32_t i = I2C_DELAY_CNT;
+ 150              		.loc 1 58 5 view .LVU35
+ 151              		.loc 1 58 23 is_stmt 0 view .LVU36
+ 152 0002 6423     		movs	r3, #100
+ 153 0004 0193     		str	r3, [sp, #4]
+  59:BSP/Src/bsp_soft_i2c.c ****     while (i--);
+ 154              		.loc 1 59 5 is_stmt 1 view .LVU37
+ 155              	.L9:
+ 156              		.loc 1 59 16 discriminator 1 view .LVU38
+ 157              		.loc 1 59 11 discriminator 1 view .LVU39
+ 158              		.loc 1 59 13 is_stmt 0 discriminator 1 view .LVU40
+ 159 0006 019B     		ldr	r3, [sp, #4]
+ 160 0008 5A1E     		subs	r2, r3, #1
+ 161 000a 0192     		str	r2, [sp, #4]
+ 162              		.loc 1 59 11 discriminator 1 view .LVU41
+ 163 000c 002B     		cmp	r3, #0
+ 164 000e FAD1     		bne	.L9
+  60:BSP/Src/bsp_soft_i2c.c **** }
+ 165              		.loc 1 60 1 view .LVU42
+ 166 0010 02B0     		add	sp, sp, #8
+ 167              	.LCFI1:
+ 168              		.cfi_def_cfa_offset 0
+ 169              		@ sp needed
+ 170 0012 7047     		bx	lr
+ 171              		.cfi_endproc
+ 172              	.LFE68:
+ 174              		.section	.text.MyI2C_Init,"ax",%progbits
+ 175              		.align	1
+ 176              		.global	MyI2C_Init
+ARM GAS  /tmp/cc7JZ3JR.s 			page 5
+
+
+ 177              		.syntax unified
+ 178              		.thumb
+ 179              		.thumb_func
+ 180              		.fpu softvfp
+ 182              	MyI2C_Init:
+ 183              	.LVL4:
+ 184              	.LFB69:
+  61:BSP/Src/bsp_soft_i2c.c **** 
+  62:BSP/Src/bsp_soft_i2c.c **** 
+  63:BSP/Src/bsp_soft_i2c.c **** /**
+  64:BSP/Src/bsp_soft_i2c.c ****   * @brief  I2C总线初始化
+  65:BSP/Src/bsp_soft_i2c.c ****   * @note   注意：GPIO的模式配置(开漏输出/上拉)应在 main.c 或 HAL_GPIO_Init 中完
+  66:BSP/Src/bsp_soft_i2c.c ****   */
+  67:BSP/Src/bsp_soft_i2c.c **** void MyI2C_Init(SoftI2C_Type* i2c)
+  68:BSP/Src/bsp_soft_i2c.c **** {
+ 185              		.loc 1 68 1 is_stmt 1 view -0
+ 186              		.cfi_startproc
+ 187              		@ args = 0, pretend = 0, frame = 0
+ 188              		@ frame_needed = 0, uses_anonymous_args = 0
+ 189              		.loc 1 68 1 is_stmt 0 view .LVU44
+ 190 0000 10B5     		push	{r4, lr}
+ 191              	.LCFI2:
+ 192              		.cfi_def_cfa_offset 8
+ 193              		.cfi_offset 4, -8
+ 194              		.cfi_offset 14, -4
+ 195 0002 0446     		mov	r4, r0
+  69:BSP/Src/bsp_soft_i2c.c ****     // 释放总线，确保 SCL 和 SDA 均为高电平 (空闲状态)
+  70:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 196              		.loc 1 70 5 is_stmt 1 view .LVU45
+ 197 0004 0121     		movs	r1, #1
+ 198 0006 FFF7FEFF 		bl	I2C_W_SCL
+ 199              	.LVL5:
+  71:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 1);
+ 200              		.loc 1 71 5 view .LVU46
+ 201 000a 0121     		movs	r1, #1
+ 202 000c 2046     		mov	r0, r4
+ 203 000e FFF7FEFF 		bl	I2C_W_SDA
+ 204              	.LVL6:
+  72:BSP/Src/bsp_soft_i2c.c **** }
+ 205              		.loc 1 72 1 is_stmt 0 view .LVU47
+ 206 0012 10BD     		pop	{r4, pc}
+ 207              		.loc 1 72 1 view .LVU48
+ 208              		.cfi_endproc
+ 209              	.LFE69:
+ 211              		.section	.text.MyI2C_Start,"ax",%progbits
+ 212              		.align	1
+ 213              		.global	MyI2C_Start
+ 214              		.syntax unified
+ 215              		.thumb
+ 216              		.thumb_func
+ 217              		.fpu softvfp
+ 219              	MyI2C_Start:
+ 220              	.LVL7:
+ 221              	.LFB70:
+  73:BSP/Src/bsp_soft_i2c.c **** 
+  74:BSP/Src/bsp_soft_i2c.c **** /**
+  75:BSP/Src/bsp_soft_i2c.c ****   * @brief  产生起始信号 (Start)
+ARM GAS  /tmp/cc7JZ3JR.s 			page 6
+
+
+  76:BSP/Src/bsp_soft_i2c.c ****   * @note   SCL高电平期间，SDA由高变低
+  77:BSP/Src/bsp_soft_i2c.c ****   */
+  78:BSP/Src/bsp_soft_i2c.c **** void MyI2C_Start(SoftI2C_Type* i2c)
+  79:BSP/Src/bsp_soft_i2c.c **** {
+ 222              		.loc 1 79 1 is_stmt 1 view -0
+ 223              		.cfi_startproc
+ 224              		@ args = 0, pretend = 0, frame = 0
+ 225              		@ frame_needed = 0, uses_anonymous_args = 0
+ 226              		.loc 1 79 1 is_stmt 0 view .LVU50
+ 227 0000 10B5     		push	{r4, lr}
+ 228              	.LCFI3:
+ 229              		.cfi_def_cfa_offset 8
+ 230              		.cfi_offset 4, -8
+ 231              		.cfi_offset 14, -4
+ 232 0002 0446     		mov	r4, r0
+  80:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 1);
+ 233              		.loc 1 80 5 is_stmt 1 view .LVU51
+ 234 0004 0121     		movs	r1, #1
+ 235 0006 FFF7FEFF 		bl	I2C_W_SDA
+ 236              	.LVL8:
+  81:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 237              		.loc 1 81 5 view .LVU52
+ 238 000a 0121     		movs	r1, #1
+ 239 000c 2046     		mov	r0, r4
+ 240 000e FFF7FEFF 		bl	I2C_W_SCL
+ 241              	.LVL9:
+  82:BSP/Src/bsp_soft_i2c.c **** 
+  83:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 0);
+ 242              		.loc 1 83 5 view .LVU53
+ 243 0012 0021     		movs	r1, #0
+ 244 0014 2046     		mov	r0, r4
+ 245 0016 FFF7FEFF 		bl	I2C_W_SDA
+ 246              	.LVL10:
+  84:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay(); // 【协议强制】Start 保持时间 (t_HD;STA)
+ 247              		.loc 1 84 5 view .LVU54
+ 248 001a FFF7FEFF 		bl	MyI2C_Delay
+ 249              	.LVL11:
+  85:BSP/Src/bsp_soft_i2c.c ****     
+  86:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0);  // 钳住总线，准备发送数据
+ 250              		.loc 1 86 5 view .LVU55
+ 251 001e 0021     		movs	r1, #0
+ 252 0020 2046     		mov	r0, r4
+ 253 0022 FFF7FEFF 		bl	I2C_W_SCL
+ 254              	.LVL12:
+  87:BSP/Src/bsp_soft_i2c.c **** }
+ 255              		.loc 1 87 1 is_stmt 0 view .LVU56
+ 256 0026 10BD     		pop	{r4, pc}
+ 257              		.loc 1 87 1 view .LVU57
+ 258              		.cfi_endproc
+ 259              	.LFE70:
+ 261              		.section	.text.MyI2C_Stop,"ax",%progbits
+ 262              		.align	1
+ 263              		.global	MyI2C_Stop
+ 264              		.syntax unified
+ 265              		.thumb
+ 266              		.thumb_func
+ 267              		.fpu softvfp
+ARM GAS  /tmp/cc7JZ3JR.s 			page 7
+
+
+ 269              	MyI2C_Stop:
+ 270              	.LVL13:
+ 271              	.LFB71:
+  88:BSP/Src/bsp_soft_i2c.c **** 
+  89:BSP/Src/bsp_soft_i2c.c **** /**
+  90:BSP/Src/bsp_soft_i2c.c ****   * @brief  产生停止信号 (Stop)
+  91:BSP/Src/bsp_soft_i2c.c ****   * @note   SCL高电平期间，SDA由低变高
+  92:BSP/Src/bsp_soft_i2c.c ****   */
+  93:BSP/Src/bsp_soft_i2c.c **** void MyI2C_Stop(SoftI2C_Type* i2c)
+  94:BSP/Src/bsp_soft_i2c.c **** {
+ 272              		.loc 1 94 1 is_stmt 1 view -0
+ 273              		.cfi_startproc
+ 274              		@ args = 0, pretend = 0, frame = 0
+ 275              		@ frame_needed = 0, uses_anonymous_args = 0
+ 276              		.loc 1 94 1 is_stmt 0 view .LVU59
+ 277 0000 10B5     		push	{r4, lr}
+ 278              	.LCFI4:
+ 279              		.cfi_def_cfa_offset 8
+ 280              		.cfi_offset 4, -8
+ 281              		.cfi_offset 14, -4
+ 282 0002 0446     		mov	r4, r0
+  95:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 0);
+ 283              		.loc 1 95 5 is_stmt 1 view .LVU60
+ 284 0004 0021     		movs	r1, #0
+ 285 0006 FFF7FEFF 		bl	I2C_W_SDA
+ 286              	.LVL14:
+  96:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay(); // 确保 SDA 已经稳定为低
+ 287              		.loc 1 96 5 view .LVU61
+ 288 000a FFF7FEFF 		bl	MyI2C_Delay
+ 289              	.LVL15:
+  97:BSP/Src/bsp_soft_i2c.c ****     
+  98:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 290              		.loc 1 98 5 view .LVU62
+ 291 000e 0121     		movs	r1, #1
+ 292 0010 2046     		mov	r0, r4
+ 293 0012 FFF7FEFF 		bl	I2C_W_SCL
+ 294              	.LVL16:
+  99:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay(); // 【协议强制】Stop 建立时间 (t_SU;STO)
+ 295              		.loc 1 99 5 view .LVU63
+ 296 0016 FFF7FEFF 		bl	MyI2C_Delay
+ 297              	.LVL17:
+ 100:BSP/Src/bsp_soft_i2c.c ****     
+ 101:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 1);
+ 298              		.loc 1 101 5 view .LVU64
+ 299 001a 0121     		movs	r1, #1
+ 300 001c 2046     		mov	r0, r4
+ 301 001e FFF7FEFF 		bl	I2C_W_SDA
+ 302              	.LVL18:
+ 102:BSP/Src/bsp_soft_i2c.c **** }
+ 303              		.loc 1 102 1 is_stmt 0 view .LVU65
+ 304 0022 10BD     		pop	{r4, pc}
+ 305              		.loc 1 102 1 view .LVU66
+ 306              		.cfi_endproc
+ 307              	.LFE71:
+ 309              		.section	.text.MyI2C_SendByte,"ax",%progbits
+ 310              		.align	1
+ 311              		.global	MyI2C_SendByte
+ARM GAS  /tmp/cc7JZ3JR.s 			page 8
+
+
+ 312              		.syntax unified
+ 313              		.thumb
+ 314              		.thumb_func
+ 315              		.fpu softvfp
+ 317              	MyI2C_SendByte:
+ 318              	.LVL19:
+ 319              	.LFB72:
+ 103:BSP/Src/bsp_soft_i2c.c **** 
+ 104:BSP/Src/bsp_soft_i2c.c **** // void MyI2C_SendByte(SoftI2C_Type* i2c, uint8_t Byte)
+ 105:BSP/Src/bsp_soft_i2c.c **** // {
+ 106:BSP/Src/bsp_soft_i2c.c **** //     uint8_t i;
+ 107:BSP/Src/bsp_soft_i2c.c **** //     for (i = 0; i < 8; i++)
+ 108:BSP/Src/bsp_soft_i2c.c **** //     {
+ 109:BSP/Src/bsp_soft_i2c.c **** //         // 1. 准备数据 (SCL 低电平期间)
+ 110:BSP/Src/bsp_soft_i2c.c **** //         if (Byte & (0x80 >> i)) {
+ 111:BSP/Src/bsp_soft_i2c.c **** //             I2C_W_SDA(i2c, 1);
+ 112:BSP/Src/bsp_soft_i2c.c **** //         } else {
+ 113:BSP/Src/bsp_soft_i2c.c **** //             I2C_W_SDA(i2c, 0);
+ 114:BSP/Src/bsp_soft_i2c.c **** //         }
+ 115:BSP/Src/bsp_soft_i2c.c **** //         MyI2C_Delay(); // 数据建立时间
+ 116:BSP/Src/bsp_soft_i2c.c ****         
+ 117:BSP/Src/bsp_soft_i2c.c **** //         // 2. 拉高时钟，让从机读取
+ 118:BSP/Src/bsp_soft_i2c.c **** //         I2C_W_SCL(i2c, 1);
+ 119:BSP/Src/bsp_soft_i2c.c **** //         MyI2C_Delay(); // 时钟高电平时间
+ 120:BSP/Src/bsp_soft_i2c.c ****         
+ 121:BSP/Src/bsp_soft_i2c.c **** //         // 3. 拉低时钟，准备下一位
+ 122:BSP/Src/bsp_soft_i2c.c **** //         I2C_W_SCL(i2c, 0);
+ 123:BSP/Src/bsp_soft_i2c.c **** //     }
+ 124:BSP/Src/bsp_soft_i2c.c **** // }
+ 125:BSP/Src/bsp_soft_i2c.c **** 
+ 126:BSP/Src/bsp_soft_i2c.c **** /**
+ 127:BSP/Src/bsp_soft_i2c.c ****   * @brief  发送一个字节 (MSB First)
+ 128:BSP/Src/bsp_soft_i2c.c ****   */
+ 129:BSP/Src/bsp_soft_i2c.c **** void MyI2C_SendByte(SoftI2C_Type* i2c, uint8_t Byte)
+ 130:BSP/Src/bsp_soft_i2c.c **** {
+ 320              		.loc 1 130 1 is_stmt 1 view -0
+ 321              		.cfi_startproc
+ 322              		@ args = 0, pretend = 0, frame = 0
+ 323              		@ frame_needed = 0, uses_anonymous_args = 0
+ 324              		.loc 1 130 1 is_stmt 0 view .LVU68
+ 325 0000 38B5     		push	{r3, r4, r5, lr}
+ 326              	.LCFI5:
+ 327              		.cfi_def_cfa_offset 16
+ 328              		.cfi_offset 3, -16
+ 329              		.cfi_offset 4, -12
+ 330              		.cfi_offset 5, -8
+ 331              		.cfi_offset 14, -4
+ 332 0002 0446     		mov	r4, r0
+ 333 0004 0D46     		mov	r5, r1
+ 131:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第7位 (最高位) ----------------
+ 132:BSP/Src/bsp_soft_i2c.c ****     // 准备数据
+ 133:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 334              		.loc 1 133 5 is_stmt 1 view .LVU69
+ 335 0006 0021     		movs	r1, #0
+ 336              	.LVL20:
+ 337              		.loc 1 133 5 is_stmt 0 view .LVU70
+ 338 0008 FFF7FEFF 		bl	I2C_W_SCL
+ARM GAS  /tmp/cc7JZ3JR.s 			page 9
+
+
+ 339              	.LVL21:
+ 134:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x80) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 340              		.loc 1 134 5 is_stmt 1 view .LVU71
+ 341              		.loc 1 134 7 is_stmt 0 view .LVU72
+ 342 000c 15F0800F 		tst	r5, #128
+ 343 0010 40F09780 		bne	.L35
+ 344              		.loc 1 134 45 is_stmt 1 discriminator 2 view .LVU73
+ 345 0014 0021     		movs	r1, #0
+ 346 0016 2046     		mov	r0, r4
+ 347 0018 FFF7FEFF 		bl	I2C_W_SDA
+ 348              	.LVL22:
+ 349              	.L19:
+ 135:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 350              		.loc 1 135 5 view .LVU74
+ 351 001c FFF7FEFF 		bl	MyI2C_Delay
+ 352              	.LVL23:
+ 136:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 353              		.loc 1 136 5 view .LVU75
+ 354 0020 0121     		movs	r1, #1
+ 355 0022 2046     		mov	r0, r4
+ 356 0024 FFF7FEFF 		bl	I2C_W_SCL
+ 357              	.LVL24:
+ 137:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 358              		.loc 1 137 5 view .LVU76
+ 359 0028 FFF7FEFF 		bl	MyI2C_Delay
+ 360              	.LVL25:
+ 138:BSP/Src/bsp_soft_i2c.c ****     
+ 139:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第6位 ----------------
+ 140:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 361              		.loc 1 140 5 view .LVU77
+ 362 002c 0021     		movs	r1, #0
+ 363 002e 2046     		mov	r0, r4
+ 364 0030 FFF7FEFF 		bl	I2C_W_SCL
+ 365              	.LVL26:
+ 141:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x40) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 366              		.loc 1 141 5 view .LVU78
+ 367              		.loc 1 141 7 is_stmt 0 view .LVU79
+ 368 0034 15F0400F 		tst	r5, #64
+ 369 0038 00F08880 		beq	.L20
+ 370              		.loc 1 141 21 is_stmt 1 discriminator 1 view .LVU80
+ 371 003c 0121     		movs	r1, #1
+ 372 003e 2046     		mov	r0, r4
+ 373 0040 FFF7FEFF 		bl	I2C_W_SDA
+ 374              	.LVL27:
+ 375              	.L21:
+ 142:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 376              		.loc 1 142 5 view .LVU81
+ 377 0044 FFF7FEFF 		bl	MyI2C_Delay
+ 378              	.LVL28:
+ 143:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 379              		.loc 1 143 5 view .LVU82
+ 380 0048 0121     		movs	r1, #1
+ 381 004a 2046     		mov	r0, r4
+ 382 004c FFF7FEFF 		bl	I2C_W_SCL
+ 383              	.LVL29:
+ 144:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 384              		.loc 1 144 5 view .LVU83
+ARM GAS  /tmp/cc7JZ3JR.s 			page 10
+
+
+ 385 0050 FFF7FEFF 		bl	MyI2C_Delay
+ 386              	.LVL30:
+ 145:BSP/Src/bsp_soft_i2c.c **** 
+ 146:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第5位 ----------------
+ 147:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 387              		.loc 1 147 5 view .LVU84
+ 388 0054 0021     		movs	r1, #0
+ 389 0056 2046     		mov	r0, r4
+ 390 0058 FFF7FEFF 		bl	I2C_W_SCL
+ 391              	.LVL31:
+ 148:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x20) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 392              		.loc 1 148 5 view .LVU85
+ 393              		.loc 1 148 7 is_stmt 0 view .LVU86
+ 394 005c 15F0200F 		tst	r5, #32
+ 395 0060 79D0     		beq	.L22
+ 396              		.loc 1 148 21 is_stmt 1 discriminator 1 view .LVU87
+ 397 0062 0121     		movs	r1, #1
+ 398 0064 2046     		mov	r0, r4
+ 399 0066 FFF7FEFF 		bl	I2C_W_SDA
+ 400              	.LVL32:
+ 401              	.L23:
+ 149:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 402              		.loc 1 149 5 view .LVU88
+ 403 006a FFF7FEFF 		bl	MyI2C_Delay
+ 404              	.LVL33:
+ 150:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 405              		.loc 1 150 5 view .LVU89
+ 406 006e 0121     		movs	r1, #1
+ 407 0070 2046     		mov	r0, r4
+ 408 0072 FFF7FEFF 		bl	I2C_W_SCL
+ 409              	.LVL34:
+ 151:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 410              		.loc 1 151 5 view .LVU90
+ 411 0076 FFF7FEFF 		bl	MyI2C_Delay
+ 412              	.LVL35:
+ 152:BSP/Src/bsp_soft_i2c.c **** 
+ 153:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第4位 ----------------
+ 154:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 413              		.loc 1 154 5 view .LVU91
+ 414 007a 0021     		movs	r1, #0
+ 415 007c 2046     		mov	r0, r4
+ 416 007e FFF7FEFF 		bl	I2C_W_SCL
+ 417              	.LVL36:
+ 155:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x10) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 418              		.loc 1 155 5 view .LVU92
+ 419              		.loc 1 155 7 is_stmt 0 view .LVU93
+ 420 0082 15F0100F 		tst	r5, #16
+ 421 0086 6BD0     		beq	.L24
+ 422              		.loc 1 155 21 is_stmt 1 discriminator 1 view .LVU94
+ 423 0088 0121     		movs	r1, #1
+ 424 008a 2046     		mov	r0, r4
+ 425 008c FFF7FEFF 		bl	I2C_W_SDA
+ 426              	.LVL37:
+ 427              	.L25:
+ 156:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 428              		.loc 1 156 5 view .LVU95
+ 429 0090 FFF7FEFF 		bl	MyI2C_Delay
+ARM GAS  /tmp/cc7JZ3JR.s 			page 11
+
+
+ 430              	.LVL38:
+ 157:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 431              		.loc 1 157 5 view .LVU96
+ 432 0094 0121     		movs	r1, #1
+ 433 0096 2046     		mov	r0, r4
+ 434 0098 FFF7FEFF 		bl	I2C_W_SCL
+ 435              	.LVL39:
+ 158:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 436              		.loc 1 158 5 view .LVU97
+ 437 009c FFF7FEFF 		bl	MyI2C_Delay
+ 438              	.LVL40:
+ 159:BSP/Src/bsp_soft_i2c.c **** 
+ 160:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第3位 ----------------
+ 161:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 439              		.loc 1 161 5 view .LVU98
+ 440 00a0 0021     		movs	r1, #0
+ 441 00a2 2046     		mov	r0, r4
+ 442 00a4 FFF7FEFF 		bl	I2C_W_SCL
+ 443              	.LVL41:
+ 162:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x08) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 444              		.loc 1 162 5 view .LVU99
+ 445              		.loc 1 162 7 is_stmt 0 view .LVU100
+ 446 00a8 15F0080F 		tst	r5, #8
+ 447 00ac 5DD0     		beq	.L26
+ 448              		.loc 1 162 21 is_stmt 1 discriminator 1 view .LVU101
+ 449 00ae 0121     		movs	r1, #1
+ 450 00b0 2046     		mov	r0, r4
+ 451 00b2 FFF7FEFF 		bl	I2C_W_SDA
+ 452              	.LVL42:
+ 453              	.L27:
+ 163:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 454              		.loc 1 163 5 view .LVU102
+ 455 00b6 FFF7FEFF 		bl	MyI2C_Delay
+ 456              	.LVL43:
+ 164:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 457              		.loc 1 164 5 view .LVU103
+ 458 00ba 0121     		movs	r1, #1
+ 459 00bc 2046     		mov	r0, r4
+ 460 00be FFF7FEFF 		bl	I2C_W_SCL
+ 461              	.LVL44:
+ 165:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 462              		.loc 1 165 5 view .LVU104
+ 463 00c2 FFF7FEFF 		bl	MyI2C_Delay
+ 464              	.LVL45:
+ 166:BSP/Src/bsp_soft_i2c.c **** 
+ 167:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第2位 ----------------
+ 168:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 465              		.loc 1 168 5 view .LVU105
+ 466 00c6 0021     		movs	r1, #0
+ 467 00c8 2046     		mov	r0, r4
+ 468 00ca FFF7FEFF 		bl	I2C_W_SCL
+ 469              	.LVL46:
+ 169:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x04) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 470              		.loc 1 169 5 view .LVU106
+ 471              		.loc 1 169 7 is_stmt 0 view .LVU107
+ 472 00ce 15F0040F 		tst	r5, #4
+ 473 00d2 4FD0     		beq	.L28
+ARM GAS  /tmp/cc7JZ3JR.s 			page 12
+
+
+ 474              		.loc 1 169 21 is_stmt 1 discriminator 1 view .LVU108
+ 475 00d4 0121     		movs	r1, #1
+ 476 00d6 2046     		mov	r0, r4
+ 477 00d8 FFF7FEFF 		bl	I2C_W_SDA
+ 478              	.LVL47:
+ 479              	.L29:
+ 170:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 480              		.loc 1 170 5 view .LVU109
+ 481 00dc FFF7FEFF 		bl	MyI2C_Delay
+ 482              	.LVL48:
+ 171:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 483              		.loc 1 171 5 view .LVU110
+ 484 00e0 0121     		movs	r1, #1
+ 485 00e2 2046     		mov	r0, r4
+ 486 00e4 FFF7FEFF 		bl	I2C_W_SCL
+ 487              	.LVL49:
+ 172:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 488              		.loc 1 172 5 view .LVU111
+ 489 00e8 FFF7FEFF 		bl	MyI2C_Delay
+ 490              	.LVL50:
+ 173:BSP/Src/bsp_soft_i2c.c **** 
+ 174:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第1位 ----------------
+ 175:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 491              		.loc 1 175 5 view .LVU112
+ 492 00ec 0021     		movs	r1, #0
+ 493 00ee 2046     		mov	r0, r4
+ 494 00f0 FFF7FEFF 		bl	I2C_W_SCL
+ 495              	.LVL51:
+ 176:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x02) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 496              		.loc 1 176 5 view .LVU113
+ 497              		.loc 1 176 7 is_stmt 0 view .LVU114
+ 498 00f4 15F0020F 		tst	r5, #2
+ 499 00f8 41D0     		beq	.L30
+ 500              		.loc 1 176 21 is_stmt 1 discriminator 1 view .LVU115
+ 501 00fa 0121     		movs	r1, #1
+ 502 00fc 2046     		mov	r0, r4
+ 503 00fe FFF7FEFF 		bl	I2C_W_SDA
+ 504              	.LVL52:
+ 505              	.L31:
+ 177:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 506              		.loc 1 177 5 view .LVU116
+ 507 0102 FFF7FEFF 		bl	MyI2C_Delay
+ 508              	.LVL53:
+ 178:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 509              		.loc 1 178 5 view .LVU117
+ 510 0106 0121     		movs	r1, #1
+ 511 0108 2046     		mov	r0, r4
+ 512 010a FFF7FEFF 		bl	I2C_W_SCL
+ 513              	.LVL54:
+ 179:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 514              		.loc 1 179 5 view .LVU118
+ 515 010e FFF7FEFF 		bl	MyI2C_Delay
+ 516              	.LVL55:
+ 180:BSP/Src/bsp_soft_i2c.c **** 
+ 181:BSP/Src/bsp_soft_i2c.c ****     // ---------------- 第0位 ----------------
+ 182:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0); 
+ 517              		.loc 1 182 5 view .LVU119
+ARM GAS  /tmp/cc7JZ3JR.s 			page 13
+
+
+ 518 0112 0021     		movs	r1, #0
+ 519 0114 2046     		mov	r0, r4
+ 520 0116 FFF7FEFF 		bl	I2C_W_SCL
+ 521              	.LVL56:
+ 183:BSP/Src/bsp_soft_i2c.c ****     if(Byte & 0x01) I2C_W_SDA(i2c, 1); else I2C_W_SDA(i2c, 0);
+ 522              		.loc 1 183 5 view .LVU120
+ 523              		.loc 1 183 7 is_stmt 0 view .LVU121
+ 524 011a 15F0010F 		tst	r5, #1
+ 525 011e 33D0     		beq	.L32
+ 526              		.loc 1 183 21 is_stmt 1 discriminator 1 view .LVU122
+ 527 0120 0121     		movs	r1, #1
+ 528 0122 2046     		mov	r0, r4
+ 529 0124 FFF7FEFF 		bl	I2C_W_SDA
+ 530              	.LVL57:
+ 531              	.L33:
+ 184:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 532              		.loc 1 184 5 view .LVU123
+ 533 0128 FFF7FEFF 		bl	MyI2C_Delay
+ 534              	.LVL58:
+ 185:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 535              		.loc 1 185 5 view .LVU124
+ 536 012c 0121     		movs	r1, #1
+ 537 012e 2046     		mov	r0, r4
+ 538 0130 FFF7FEFF 		bl	I2C_W_SCL
+ 539              	.LVL59:
+ 186:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 540              		.loc 1 186 5 view .LVU125
+ 541 0134 FFF7FEFF 		bl	MyI2C_Delay
+ 542              	.LVL60:
+ 187:BSP/Src/bsp_soft_i2c.c **** 
+ 188:BSP/Src/bsp_soft_i2c.c ****     // 最后拉低SCL，结束
+ 189:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0);
+ 543              		.loc 1 189 5 view .LVU126
+ 544 0138 0021     		movs	r1, #0
+ 545 013a 2046     		mov	r0, r4
+ 546 013c FFF7FEFF 		bl	I2C_W_SCL
+ 547              	.LVL61:
+ 190:BSP/Src/bsp_soft_i2c.c **** }
+ 548              		.loc 1 190 1 is_stmt 0 view .LVU127
+ 549 0140 38BD     		pop	{r3, r4, r5, pc}
+ 550              	.LVL62:
+ 551              	.L35:
+ 134:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 552              		.loc 1 134 21 is_stmt 1 discriminator 1 view .LVU128
+ 553 0142 0121     		movs	r1, #1
+ 554 0144 2046     		mov	r0, r4
+ 555 0146 FFF7FEFF 		bl	I2C_W_SDA
+ 556              	.LVL63:
+ 557 014a 67E7     		b	.L19
+ 558              	.L20:
+ 141:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 559              		.loc 1 141 45 discriminator 2 view .LVU129
+ 560 014c 0021     		movs	r1, #0
+ 561 014e 2046     		mov	r0, r4
+ 562 0150 FFF7FEFF 		bl	I2C_W_SDA
+ 563              	.LVL64:
+ 564 0154 76E7     		b	.L21
+ARM GAS  /tmp/cc7JZ3JR.s 			page 14
+
+
+ 565              	.L22:
+ 148:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 566              		.loc 1 148 45 discriminator 2 view .LVU130
+ 567 0156 0021     		movs	r1, #0
+ 568 0158 2046     		mov	r0, r4
+ 569 015a FFF7FEFF 		bl	I2C_W_SDA
+ 570              	.LVL65:
+ 571 015e 84E7     		b	.L23
+ 572              	.L24:
+ 155:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 573              		.loc 1 155 45 discriminator 2 view .LVU131
+ 574 0160 0021     		movs	r1, #0
+ 575 0162 2046     		mov	r0, r4
+ 576 0164 FFF7FEFF 		bl	I2C_W_SDA
+ 577              	.LVL66:
+ 578 0168 92E7     		b	.L25
+ 579              	.L26:
+ 162:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 580              		.loc 1 162 45 discriminator 2 view .LVU132
+ 581 016a 0021     		movs	r1, #0
+ 582 016c 2046     		mov	r0, r4
+ 583 016e FFF7FEFF 		bl	I2C_W_SDA
+ 584              	.LVL67:
+ 585 0172 A0E7     		b	.L27
+ 586              	.L28:
+ 169:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 587              		.loc 1 169 45 discriminator 2 view .LVU133
+ 588 0174 0021     		movs	r1, #0
+ 589 0176 2046     		mov	r0, r4
+ 590 0178 FFF7FEFF 		bl	I2C_W_SDA
+ 591              	.LVL68:
+ 592 017c AEE7     		b	.L29
+ 593              	.L30:
+ 176:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 594              		.loc 1 176 45 discriminator 2 view .LVU134
+ 595 017e 0021     		movs	r1, #0
+ 596 0180 2046     		mov	r0, r4
+ 597 0182 FFF7FEFF 		bl	I2C_W_SDA
+ 598              	.LVL69:
+ 599 0186 BCE7     		b	.L31
+ 600              	.L32:
+ 183:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 601              		.loc 1 183 45 discriminator 2 view .LVU135
+ 602 0188 0021     		movs	r1, #0
+ 603 018a 2046     		mov	r0, r4
+ 604 018c FFF7FEFF 		bl	I2C_W_SDA
+ 605              	.LVL70:
+ 606 0190 CAE7     		b	.L33
+ 607              		.cfi_endproc
+ 608              	.LFE72:
+ 610              		.section	.text.MyI2C_ReceiveByte,"ax",%progbits
+ 611              		.align	1
+ 612              		.global	MyI2C_ReceiveByte
+ 613              		.syntax unified
+ 614              		.thumb
+ 615              		.thumb_func
+ 616              		.fpu softvfp
+ARM GAS  /tmp/cc7JZ3JR.s 			page 15
+
+
+ 618              	MyI2C_ReceiveByte:
+ 619              	.LVL71:
+ 620              	.LFB73:
+ 191:BSP/Src/bsp_soft_i2c.c **** 
+ 192:BSP/Src/bsp_soft_i2c.c **** /**
+ 193:BSP/Src/bsp_soft_i2c.c ****   * @brief  接收一个字节
+ 194:BSP/Src/bsp_soft_i2c.c ****   * @note   主机在读取前必须释放 SDA 线
+ 195:BSP/Src/bsp_soft_i2c.c ****   */
+ 196:BSP/Src/bsp_soft_i2c.c **** uint8_t MyI2C_ReceiveByte(SoftI2C_Type* i2c)
+ 197:BSP/Src/bsp_soft_i2c.c **** {
+ 621              		.loc 1 197 1 view -0
+ 622              		.cfi_startproc
+ 623              		@ args = 0, pretend = 0, frame = 0
+ 624              		@ frame_needed = 0, uses_anonymous_args = 0
+ 625              		.loc 1 197 1 is_stmt 0 view .LVU137
+ 626 0000 70B5     		push	{r4, r5, r6, lr}
+ 627              	.LCFI6:
+ 628              		.cfi_def_cfa_offset 16
+ 629              		.cfi_offset 4, -16
+ 630              		.cfi_offset 5, -12
+ 631              		.cfi_offset 6, -8
+ 632              		.cfi_offset 14, -4
+ 633 0002 0546     		mov	r5, r0
+ 198:BSP/Src/bsp_soft_i2c.c ****     uint8_t i;
+ 634              		.loc 1 198 5 is_stmt 1 view .LVU138
+ 199:BSP/Src/bsp_soft_i2c.c ****     uint8_t Byte = 0;
+ 635              		.loc 1 199 5 view .LVU139
+ 636              	.LVL72:
+ 200:BSP/Src/bsp_soft_i2c.c ****     
+ 201:BSP/Src/bsp_soft_i2c.c ****     // 主机释放 SDA (切换为输入，开漏输出写1即释放)
+ 202:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 1); 
+ 637              		.loc 1 202 5 view .LVU140
+ 638 0004 0121     		movs	r1, #1
+ 639 0006 FFF7FEFF 		bl	I2C_W_SDA
+ 640              	.LVL73:
+ 203:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 641              		.loc 1 203 5 view .LVU141
+ 642 000a FFF7FEFF 		bl	MyI2C_Delay
+ 643              	.LVL74:
+ 204:BSP/Src/bsp_soft_i2c.c ****     
+ 205:BSP/Src/bsp_soft_i2c.c ****     for (i = 0; i < 8; i++)
+ 644              		.loc 1 205 5 view .LVU142
+ 199:BSP/Src/bsp_soft_i2c.c ****     
+ 645              		.loc 1 199 13 is_stmt 0 view .LVU143
+ 646 000e 0026     		movs	r6, #0
+ 647              		.loc 1 205 12 view .LVU144
+ 648 0010 3446     		mov	r4, r6
+ 649              		.loc 1 205 5 view .LVU145
+ 650 0012 07E0     		b	.L37
+ 651              	.LVL75:
+ 652              	.L38:
+ 206:BSP/Src/bsp_soft_i2c.c ****     {
+ 207:BSP/Src/bsp_soft_i2c.c ****         I2C_W_SCL(i2c, 1);       // 拉高时钟，从机数据有效
+ 208:BSP/Src/bsp_soft_i2c.c ****         MyI2C_Delay();
+ 209:BSP/Src/bsp_soft_i2c.c ****         
+ 210:BSP/Src/bsp_soft_i2c.c ****         if (I2C_R_SDA(i2c)) {
+ 211:BSP/Src/bsp_soft_i2c.c ****             Byte |= (0x80 >> i);
+ARM GAS  /tmp/cc7JZ3JR.s 			page 16
+
+
+ 212:BSP/Src/bsp_soft_i2c.c ****         }
+ 213:BSP/Src/bsp_soft_i2c.c ****         
+ 214:BSP/Src/bsp_soft_i2c.c ****         I2C_W_SCL(i2c, 0);       // 拉低时钟
+ 653              		.loc 1 214 9 is_stmt 1 discriminator 2 view .LVU146
+ 654 0014 0021     		movs	r1, #0
+ 655 0016 2846     		mov	r0, r5
+ 656 0018 FFF7FEFF 		bl	I2C_W_SCL
+ 657              	.LVL76:
+ 215:BSP/Src/bsp_soft_i2c.c ****         MyI2C_Delay();
+ 658              		.loc 1 215 9 discriminator 2 view .LVU147
+ 659 001c FFF7FEFF 		bl	MyI2C_Delay
+ 660              	.LVL77:
+ 205:BSP/Src/bsp_soft_i2c.c ****     {
+ 661              		.loc 1 205 24 discriminator 2 view .LVU148
+ 205:BSP/Src/bsp_soft_i2c.c ****     {
+ 662              		.loc 1 205 25 is_stmt 0 discriminator 2 view .LVU149
+ 663 0020 0134     		adds	r4, r4, #1
+ 664              	.LVL78:
+ 205:BSP/Src/bsp_soft_i2c.c ****     {
+ 665              		.loc 1 205 25 discriminator 2 view .LVU150
+ 666 0022 E4B2     		uxtb	r4, r4
+ 667              	.LVL79:
+ 668              	.L37:
+ 205:BSP/Src/bsp_soft_i2c.c ****     {
+ 669              		.loc 1 205 17 is_stmt 1 discriminator 1 view .LVU151
+ 205:BSP/Src/bsp_soft_i2c.c ****     {
+ 670              		.loc 1 205 5 is_stmt 0 discriminator 1 view .LVU152
+ 671 0024 072C     		cmp	r4, #7
+ 672 0026 0FD8     		bhi	.L41
+ 207:BSP/Src/bsp_soft_i2c.c ****         MyI2C_Delay();
+ 673              		.loc 1 207 9 is_stmt 1 view .LVU153
+ 674 0028 0121     		movs	r1, #1
+ 675 002a 2846     		mov	r0, r5
+ 676 002c FFF7FEFF 		bl	I2C_W_SCL
+ 677              	.LVL80:
+ 208:BSP/Src/bsp_soft_i2c.c ****         
+ 678              		.loc 1 208 9 view .LVU154
+ 679 0030 FFF7FEFF 		bl	MyI2C_Delay
+ 680              	.LVL81:
+ 210:BSP/Src/bsp_soft_i2c.c ****             Byte |= (0x80 >> i);
+ 681              		.loc 1 210 9 view .LVU155
+ 210:BSP/Src/bsp_soft_i2c.c ****             Byte |= (0x80 >> i);
+ 682              		.loc 1 210 13 is_stmt 0 view .LVU156
+ 683 0034 2846     		mov	r0, r5
+ 684 0036 FFF7FEFF 		bl	I2C_R_SDA
+ 685              	.LVL82:
+ 210:BSP/Src/bsp_soft_i2c.c ****             Byte |= (0x80 >> i);
+ 686              		.loc 1 210 12 view .LVU157
+ 687 003a 0028     		cmp	r0, #0
+ 688 003c EAD0     		beq	.L38
+ 211:BSP/Src/bsp_soft_i2c.c ****         }
+ 689              		.loc 1 211 13 is_stmt 1 view .LVU158
+ 211:BSP/Src/bsp_soft_i2c.c ****         }
+ 690              		.loc 1 211 27 is_stmt 0 view .LVU159
+ 691 003e 8023     		movs	r3, #128
+ 692 0040 2341     		asrs	r3, r3, r4
+ 211:BSP/Src/bsp_soft_i2c.c ****         }
+ARM GAS  /tmp/cc7JZ3JR.s 			page 17
+
+
+ 693              		.loc 1 211 18 view .LVU160
+ 694 0042 1E43     		orrs	r6, r6, r3
+ 695              	.LVL83:
+ 211:BSP/Src/bsp_soft_i2c.c ****         }
+ 696              		.loc 1 211 18 view .LVU161
+ 697 0044 F6B2     		uxtb	r6, r6
+ 698              	.LVL84:
+ 211:BSP/Src/bsp_soft_i2c.c ****         }
+ 699              		.loc 1 211 18 view .LVU162
+ 700 0046 E5E7     		b	.L38
+ 701              	.L41:
+ 216:BSP/Src/bsp_soft_i2c.c ****     }
+ 217:BSP/Src/bsp_soft_i2c.c ****     return Byte;
+ 702              		.loc 1 217 5 is_stmt 1 view .LVU163
+ 218:BSP/Src/bsp_soft_i2c.c **** }
+ 703              		.loc 1 218 1 is_stmt 0 view .LVU164
+ 704 0048 3046     		mov	r0, r6
+ 705 004a 70BD     		pop	{r4, r5, r6, pc}
+ 706              		.loc 1 218 1 view .LVU165
+ 707              		.cfi_endproc
+ 708              	.LFE73:
+ 710              		.section	.text.MyI2C_SendAck,"ax",%progbits
+ 711              		.align	1
+ 712              		.global	MyI2C_SendAck
+ 713              		.syntax unified
+ 714              		.thumb
+ 715              		.thumb_func
+ 716              		.fpu softvfp
+ 718              	MyI2C_SendAck:
+ 719              	.LVL85:
+ 720              	.LFB74:
+ 219:BSP/Src/bsp_soft_i2c.c **** 
+ 220:BSP/Src/bsp_soft_i2c.c **** /**
+ 221:BSP/Src/bsp_soft_i2c.c ****   * @brief  发送应答信号
+ 222:BSP/Src/bsp_soft_i2c.c ****   * @param  AckBit 0:ACK (继续), 1:NACK (停止)
+ 223:BSP/Src/bsp_soft_i2c.c ****   */
+ 224:BSP/Src/bsp_soft_i2c.c **** void MyI2C_SendAck(SoftI2C_Type* i2c, uint8_t AckBit)
+ 225:BSP/Src/bsp_soft_i2c.c **** {
+ 721              		.loc 1 225 1 is_stmt 1 view -0
+ 722              		.cfi_startproc
+ 723              		@ args = 0, pretend = 0, frame = 0
+ 724              		@ frame_needed = 0, uses_anonymous_args = 0
+ 725              		.loc 1 225 1 is_stmt 0 view .LVU167
+ 726 0000 10B5     		push	{r4, lr}
+ 727              	.LCFI7:
+ 728              		.cfi_def_cfa_offset 8
+ 729              		.cfi_offset 4, -8
+ 730              		.cfi_offset 14, -4
+ 731 0002 0446     		mov	r4, r0
+ 226:BSP/Src/bsp_soft_i2c.c ****     if (AckBit) {
+ 732              		.loc 1 226 5 is_stmt 1 view .LVU168
+ 733              		.loc 1 226 8 is_stmt 0 view .LVU169
+ 734 0004 79B1     		cbz	r1, .L43
+ 227:BSP/Src/bsp_soft_i2c.c ****         I2C_W_SDA(i2c, 1);
+ 735              		.loc 1 227 9 is_stmt 1 view .LVU170
+ 736 0006 0121     		movs	r1, #1
+ 737              	.LVL86:
+ARM GAS  /tmp/cc7JZ3JR.s 			page 18
+
+
+ 738              		.loc 1 227 9 is_stmt 0 view .LVU171
+ 739 0008 FFF7FEFF 		bl	I2C_W_SDA
+ 740              	.LVL87:
+ 741              	.L44:
+ 228:BSP/Src/bsp_soft_i2c.c ****     } else {
+ 229:BSP/Src/bsp_soft_i2c.c ****         I2C_W_SDA(i2c, 0);
+ 230:BSP/Src/bsp_soft_i2c.c ****     }
+ 231:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 742              		.loc 1 231 5 is_stmt 1 view .LVU172
+ 743 000c FFF7FEFF 		bl	MyI2C_Delay
+ 744              	.LVL88:
+ 232:BSP/Src/bsp_soft_i2c.c ****     
+ 233:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 745              		.loc 1 233 5 view .LVU173
+ 746 0010 0121     		movs	r1, #1
+ 747 0012 2046     		mov	r0, r4
+ 748 0014 FFF7FEFF 		bl	I2C_W_SCL
+ 749              	.LVL89:
+ 234:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 750              		.loc 1 234 5 view .LVU174
+ 751 0018 FFF7FEFF 		bl	MyI2C_Delay
+ 752              	.LVL90:
+ 235:BSP/Src/bsp_soft_i2c.c ****     
+ 236:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0);
+ 753              		.loc 1 236 5 view .LVU175
+ 754 001c 0021     		movs	r1, #0
+ 755 001e 2046     		mov	r0, r4
+ 756 0020 FFF7FEFF 		bl	I2C_W_SCL
+ 757              	.LVL91:
+ 237:BSP/Src/bsp_soft_i2c.c **** }
+ 758              		.loc 1 237 1 is_stmt 0 view .LVU176
+ 759 0024 10BD     		pop	{r4, pc}
+ 760              	.LVL92:
+ 761              	.L43:
+ 229:BSP/Src/bsp_soft_i2c.c ****     }
+ 762              		.loc 1 229 9 is_stmt 1 view .LVU177
+ 763 0026 0021     		movs	r1, #0
+ 764              	.LVL93:
+ 229:BSP/Src/bsp_soft_i2c.c ****     }
+ 765              		.loc 1 229 9 is_stmt 0 view .LVU178
+ 766 0028 FFF7FEFF 		bl	I2C_W_SDA
+ 767              	.LVL94:
+ 229:BSP/Src/bsp_soft_i2c.c ****     }
+ 768              		.loc 1 229 9 view .LVU179
+ 769 002c EEE7     		b	.L44
+ 770              		.cfi_endproc
+ 771              	.LFE74:
+ 773              		.section	.text.MyI2C_WaitAck,"ax",%progbits
+ 774              		.align	1
+ 775              		.global	MyI2C_WaitAck
+ 776              		.syntax unified
+ 777              		.thumb
+ 778              		.thumb_func
+ 779              		.fpu softvfp
+ 781              	MyI2C_WaitAck:
+ 782              	.LVL95:
+ 783              	.LFB75:
+ARM GAS  /tmp/cc7JZ3JR.s 			page 19
+
+
+ 238:BSP/Src/bsp_soft_i2c.c **** 
+ 239:BSP/Src/bsp_soft_i2c.c **** /**
+ 240:BSP/Src/bsp_soft_i2c.c ****   * @brief  等待从机应答
+ 241:BSP/Src/bsp_soft_i2c.c ****   * @return 0:接收到ACK, 1:接收到NACK
+ 242:BSP/Src/bsp_soft_i2c.c ****   */
+ 243:BSP/Src/bsp_soft_i2c.c **** uint8_t MyI2C_WaitAck(SoftI2C_Type* i2c)
+ 244:BSP/Src/bsp_soft_i2c.c **** {
+ 784              		.loc 1 244 1 is_stmt 1 view -0
+ 785              		.cfi_startproc
+ 786              		@ args = 0, pretend = 0, frame = 0
+ 787              		@ frame_needed = 0, uses_anonymous_args = 0
+ 788              		.loc 1 244 1 is_stmt 0 view .LVU181
+ 789 0000 38B5     		push	{r3, r4, r5, lr}
+ 790              	.LCFI8:
+ 791              		.cfi_def_cfa_offset 16
+ 792              		.cfi_offset 3, -16
+ 793              		.cfi_offset 4, -12
+ 794              		.cfi_offset 5, -8
+ 795              		.cfi_offset 14, -4
+ 796 0002 0446     		mov	r4, r0
+ 245:BSP/Src/bsp_soft_i2c.c ****     uint8_t AckBit;
+ 797              		.loc 1 245 5 is_stmt 1 view .LVU182
+ 246:BSP/Src/bsp_soft_i2c.c ****     
+ 247:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SDA(i2c, 1);   // 释放总线，交由从机控制
+ 798              		.loc 1 247 5 view .LVU183
+ 799 0004 0121     		movs	r1, #1
+ 800 0006 FFF7FEFF 		bl	I2C_W_SDA
+ 801              	.LVL96:
+ 248:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();
+ 802              		.loc 1 248 5 view .LVU184
+ 803 000a FFF7FEFF 		bl	MyI2C_Delay
+ 804              	.LVL97:
+ 249:BSP/Src/bsp_soft_i2c.c ****     
+ 250:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 1);
+ 805              		.loc 1 250 5 view .LVU185
+ 806 000e 0121     		movs	r1, #1
+ 807 0010 2046     		mov	r0, r4
+ 808 0012 FFF7FEFF 		bl	I2C_W_SCL
+ 809              	.LVL98:
+ 251:BSP/Src/bsp_soft_i2c.c ****     MyI2C_Delay();  // 给从机拉低的时间
+ 810              		.loc 1 251 5 view .LVU186
+ 811 0016 FFF7FEFF 		bl	MyI2C_Delay
+ 812              	.LVL99:
+ 252:BSP/Src/bsp_soft_i2c.c ****     
+ 253:BSP/Src/bsp_soft_i2c.c ****     if (I2C_R_SDA(i2c)) {
+ 813              		.loc 1 253 5 view .LVU187
+ 814              		.loc 1 253 9 is_stmt 0 view .LVU188
+ 815 001a 2046     		mov	r0, r4
+ 816 001c FFF7FEFF 		bl	I2C_R_SDA
+ 817              	.LVL100:
+ 818              		.loc 1 253 8 view .LVU189
+ 819 0020 0546     		mov	r5, r0
+ 820 0022 00B1     		cbz	r0, .L47
+ 254:BSP/Src/bsp_soft_i2c.c ****         AckBit = 1; // 读到高电平，说明从机没拉低 (NACK)
+ 821              		.loc 1 254 16 view .LVU190
+ 822 0024 0125     		movs	r5, #1
+ 823              	.L47:
+ARM GAS  /tmp/cc7JZ3JR.s 			page 20
+
+
+ 824              	.LVL101:
+ 255:BSP/Src/bsp_soft_i2c.c ****     } else {
+ 256:BSP/Src/bsp_soft_i2c.c ****         AckBit = 0; // 读到低电平，说明从机拉低了 (ACK)
+ 257:BSP/Src/bsp_soft_i2c.c ****     }
+ 258:BSP/Src/bsp_soft_i2c.c ****     
+ 259:BSP/Src/bsp_soft_i2c.c ****     I2C_W_SCL(i2c, 0);
+ 825              		.loc 1 259 5 is_stmt 1 view .LVU191
+ 826 0026 0021     		movs	r1, #0
+ 827 0028 2046     		mov	r0, r4
+ 828 002a FFF7FEFF 		bl	I2C_W_SCL
+ 829              	.LVL102:
+ 260:BSP/Src/bsp_soft_i2c.c ****     
+ 261:BSP/Src/bsp_soft_i2c.c ****     return AckBit;
+ 830              		.loc 1 261 5 view .LVU192
+ 262:BSP/Src/bsp_soft_i2c.c **** }
+ 831              		.loc 1 262 1 is_stmt 0 view .LVU193
+ 832 002e 2846     		mov	r0, r5
+ 833 0030 38BD     		pop	{r3, r4, r5, pc}
+ 834              		.loc 1 262 1 view .LVU194
+ 835              		.cfi_endproc
+ 836              	.LFE75:
+ 838              		.text
+ 839              	.Letext0:
+ 840              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 841              		.file 3 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+ 842              		.file 4 "BSP/Inc/bsp_soft_i2c.h"
+ARM GAS  /tmp/cc7JZ3JR.s 			page 21
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 bsp_soft_i2c.c
+     /tmp/cc7JZ3JR.s:16     .text.I2C_W_SCL:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:23     .text.I2C_W_SCL:0000000000000000 I2C_W_SCL
+     /tmp/cc7JZ3JR.s:59     .text.I2C_W_SDA:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:65     .text.I2C_W_SDA:0000000000000000 I2C_W_SDA
+     /tmp/cc7JZ3JR.s:100    .text.I2C_R_SDA:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:106    .text.I2C_R_SDA:0000000000000000 I2C_R_SDA
+     /tmp/cc7JZ3JR.s:134    .text.MyI2C_Delay:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:140    .text.MyI2C_Delay:0000000000000000 MyI2C_Delay
+     /tmp/cc7JZ3JR.s:175    .text.MyI2C_Init:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:182    .text.MyI2C_Init:0000000000000000 MyI2C_Init
+     /tmp/cc7JZ3JR.s:212    .text.MyI2C_Start:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:219    .text.MyI2C_Start:0000000000000000 MyI2C_Start
+     /tmp/cc7JZ3JR.s:262    .text.MyI2C_Stop:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:269    .text.MyI2C_Stop:0000000000000000 MyI2C_Stop
+     /tmp/cc7JZ3JR.s:310    .text.MyI2C_SendByte:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:317    .text.MyI2C_SendByte:0000000000000000 MyI2C_SendByte
+     /tmp/cc7JZ3JR.s:611    .text.MyI2C_ReceiveByte:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:618    .text.MyI2C_ReceiveByte:0000000000000000 MyI2C_ReceiveByte
+     /tmp/cc7JZ3JR.s:711    .text.MyI2C_SendAck:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:718    .text.MyI2C_SendAck:0000000000000000 MyI2C_SendAck
+     /tmp/cc7JZ3JR.s:774    .text.MyI2C_WaitAck:0000000000000000 $t
+     /tmp/cc7JZ3JR.s:781    .text.MyI2C_WaitAck:0000000000000000 MyI2C_WaitAck
+
+NO UNDEFINED SYMBOLS

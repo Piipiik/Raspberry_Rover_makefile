@@ -1,0 +1,853 @@
+ARM GAS  /tmp/ccvGljQ4.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"filter.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.global	__aeabi_i2f
+  16              		.global	__aeabi_fdiv
+  17              		.section	.text.MPU6050_Calibrate_Gyro,"ax",%progbits
+  18              		.align	1
+  19              		.global	MPU6050_Calibrate_Gyro
+  20              		.arch armv7-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu softvfp
+  26              	MPU6050_Calibrate_Gyro:
+  27              	.LFB66:
+  28              		.file 1 "Control/FILTER/filter.c"
+   1:Control/FILTER/filter.c **** #include "filter.h"
+   2:Control/FILTER/filter.c **** #include <math.h> // 必须包含数学库
+   3:Control/FILTER/filter.c **** #include "mpu6050.h"
+   4:Control/FILTER/filter.c **** #include <main.h>
+   5:Control/FILTER/filter.c **** 
+   6:Control/FILTER/filter.c **** 
+   7:Control/FILTER/filter.c **** // 互补滤波参数
+   8:Control/FILTER/filter.c **** #define K_FILTER  0.98f   // 权重系数 (0.95 ~ 0.98)
+   9:Control/FILTER/filter.c **** #define DT        0.005f  // 采样时间 (秒)，假设你每 10ms 调用一次
+  10:Control/FILTER/filter.c **** 
+  11:Control/FILTER/filter.c **** // 全局变量，用来保存当前的最终角度
+  12:Control/FILTER/filter.c **** // 必须是全局的，因为它是“积分”的，要记得上一次的值
+  13:Control/FILTER/filter.c **** float Pitch_Angle = 0; 
+  14:Control/FILTER/filter.c **** 
+  15:Control/FILTER/filter.c **** // 我测着是-39
+  16:Control/FILTER/filter.c **** float Gyro_X_Offset = -39; // 全局变量，存偏差值
+  17:Control/FILTER/filter.c **** float Gyro_Z_Offset = -29;
+  18:Control/FILTER/filter.c **** 
+  19:Control/FILTER/filter.c **** void Filter_Init(void)
+  20:Control/FILTER/filter.c **** {
+  21:Control/FILTER/filter.c ****     int16_t ax, ay, az, gx, gy, gz;
+  22:Control/FILTER/filter.c **** 
+  23:Control/FILTER/filter.c ****     // 给用户一个心理准备时间，也等待传感器内部稳定
+  24:Control/FILTER/filter.c ****     HAL_Delay(500); 
+  25:Control/FILTER/filter.c **** 
+  26:Control/FILTER/filter.c ****     // === 核心：快速收敛循环 ===
+  27:Control/FILTER/filter.c ****     // 循环 100 次，每次间隔 5ms (模拟真实的控制周期)
+  28:Control/FILTER/filter.c ****     // 目的：利用互补滤波的特性，让 Pitch_Angle 快速追上真实的重力角度
+  29:Control/FILTER/filter.c ****     for(int i = 0; i < 100; i++)
+  30:Control/FILTER/filter.c ****     {
+ARM GAS  /tmp/ccvGljQ4.s 			page 2
+
+
+  31:Control/FILTER/filter.c ****         // 1. 获取数据
+  32:Control/FILTER/filter.c ****         MPU6050_GetData(&ax, &ay, &az, &gx, &gy, &gz);
+  33:Control/FILTER/filter.c **** 
+  34:Control/FILTER/filter.c ****         // 2. 跑一遍姿态解算
+  35:Control/FILTER/filter.c ****         // 【重要】：这里一定要填你刚才测试通过的、正确的轴！！！
+  36:Control/FILTER/filter.c ****         // 如果你测出来是 ax 和 gx，就填 ax, az, gx
+  37:Control/FILTER/filter.c ****         // 如果还是 ay 和 gy，就填 ay, az, gy
+  38:Control/FILTER/filter.c ****         MPU6050_Update_Posture(ay, az, gx); 
+  39:Control/FILTER/filter.c ****         
+  40:Control/FILTER/filter.c ****         // 3. 延时 5ms，模拟真实采样率
+  41:Control/FILTER/filter.c ****         HAL_Delay(5);
+  42:Control/FILTER/filter.c ****     }
+  43:Control/FILTER/filter.c ****     
+  44:Control/FILTER/filter.c ****     // 循环结束后，Pitch_Angle 已经等于当前真实的物理角度了。
+  45:Control/FILTER/filter.c ****     // 此时再启动电机，如果角度 > 45，电机绝对不会转。
+  46:Control/FILTER/filter.c **** }
+  47:Control/FILTER/filter.c **** 
+  48:Control/FILTER/filter.c **** // 新增：校准函数
+  49:Control/FILTER/filter.c **** void MPU6050_Calibrate_Gyro(void)
+  50:Control/FILTER/filter.c **** {
+  29              		.loc 1 50 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 16
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33 0000 30B5     		push	{r4, r5, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 12
+  36              		.cfi_offset 4, -12
+  37              		.cfi_offset 5, -8
+  38              		.cfi_offset 14, -4
+  39 0002 87B0     		sub	sp, sp, #28
+  40              	.LCFI1:
+  41              		.cfi_def_cfa_offset 40
+  51:Control/FILTER/filter.c ****     int32_t Sum = 0;
+  42              		.loc 1 51 5 view .LVU1
+  43              	.LVL0:
+  52:Control/FILTER/filter.c ****     int16_t ax, ay, az, gx, gy, gz;
+  44              		.loc 1 52 5 view .LVU2
+  53:Control/FILTER/filter.c **** 
+  54:Control/FILTER/filter.c ****     // 丢弃前几次数据：MPU6050 刚上电或复位时，前几组数据可能会波动较大
+  55:Control/FILTER/filter.c ****      for(int i=0; i<100; i++)
+  45              		.loc 1 55 6 view .LVU3
+  46              	.LBB2:
+  47              		.loc 1 55 10 view .LVU4
+  48              		.loc 1 55 14 is_stmt 0 view .LVU5
+  49 0004 0024     		movs	r4, #0
+  50              		.loc 1 55 6 view .LVU6
+  51 0006 10E0     		b	.L2
+  52              	.LVL1:
+  53              	.L3:
+  56:Control/FILTER/filter.c ****     {
+  57:Control/FILTER/filter.c ****         MPU6050_GetData(&ax, &ay, &az, &gx, &gy, &gz);
+  54              		.loc 1 57 9 is_stmt 1 discriminator 3 view .LVU7
+  55 0008 03AB     		add	r3, sp, #12
+  56 000a 0193     		str	r3, [sp, #4]
+  57 000c 0DF10E03 		add	r3, sp, #14
+  58 0010 0093     		str	r3, [sp]
+ARM GAS  /tmp/ccvGljQ4.s 			page 3
+
+
+  59 0012 04AB     		add	r3, sp, #16
+  60 0014 0DF11202 		add	r2, sp, #18
+  61 0018 05A9     		add	r1, sp, #20
+  62 001a 0DF11600 		add	r0, sp, #22
+  63 001e FFF7FEFF 		bl	MPU6050_GetData
+  64              	.LVL2:
+  58:Control/FILTER/filter.c ****         HAL_Delay(5);
+  65              		.loc 1 58 9 discriminator 3 view .LVU8
+  66 0022 0520     		movs	r0, #5
+  67 0024 FFF7FEFF 		bl	HAL_Delay
+  68              	.LVL3:
+  55:Control/FILTER/filter.c ****     {
+  69              		.loc 1 55 26 discriminator 3 view .LVU9
+  55:Control/FILTER/filter.c ****     {
+  70              		.loc 1 55 27 is_stmt 0 discriminator 3 view .LVU10
+  71 0028 0134     		adds	r4, r4, #1
+  72              	.LVL4:
+  73              	.L2:
+  55:Control/FILTER/filter.c ****     {
+  74              		.loc 1 55 19 is_stmt 1 discriminator 1 view .LVU11
+  55:Control/FILTER/filter.c ****     {
+  75              		.loc 1 55 6 is_stmt 0 discriminator 1 view .LVU12
+  76 002a 632C     		cmp	r4, #99
+  77 002c ECDD     		ble	.L3
+  78              	.LBE2:
+  79              	.LBB3:
+  59:Control/FILTER/filter.c ****     }
+  60:Control/FILTER/filter.c ****     
+  61:Control/FILTER/filter.c ****     // 循环读 200 次，耗时约 1 秒
+  62:Control/FILTER/filter.c ****     for(int i=0; i<200; i++)
+  80              		.loc 1 62 13 view .LVU13
+  81 002e 0024     		movs	r4, #0
+  82              	.LVL5:
+  83              		.loc 1 62 13 view .LVU14
+  84              	.LBE3:
+  51:Control/FILTER/filter.c ****     int16_t ax, ay, az, gx, gy, gz;
+  85              		.loc 1 51 13 view .LVU15
+  86 0030 2546     		mov	r5, r4
+  87 0032 13E0     		b	.L4
+  88              	.LVL6:
+  89              	.L5:
+  90              	.LBB4:
+  63:Control/FILTER/filter.c ****     {
+  64:Control/FILTER/filter.c ****         MPU6050_GetData(&ax, &ay, &az, &gx, &gy, &gz);
+  91              		.loc 1 64 9 is_stmt 1 discriminator 3 view .LVU16
+  92 0034 03AB     		add	r3, sp, #12
+  93 0036 0193     		str	r3, [sp, #4]
+  94 0038 0DF10E03 		add	r3, sp, #14
+  95 003c 0093     		str	r3, [sp]
+  96 003e 04AB     		add	r3, sp, #16
+  97 0040 0DF11202 		add	r2, sp, #18
+  98 0044 05A9     		add	r1, sp, #20
+  99 0046 0DF11600 		add	r0, sp, #22
+ 100 004a FFF7FEFF 		bl	MPU6050_GetData
+ 101              	.LVL7:
+  65:Control/FILTER/filter.c ****         Sum += gx; // 累加 GX 数据
+ 102              		.loc 1 65 9 discriminator 3 view .LVU17
+ARM GAS  /tmp/ccvGljQ4.s 			page 4
+
+
+ 103              		.loc 1 65 13 is_stmt 0 discriminator 3 view .LVU18
+ 104 004e BDF91030 		ldrsh	r3, [sp, #16]
+ 105 0052 1D44     		add	r5, r5, r3
+ 106              	.LVL8:
+  66:Control/FILTER/filter.c ****         HAL_Delay(5);
+ 107              		.loc 1 66 9 is_stmt 1 discriminator 3 view .LVU19
+ 108 0054 0520     		movs	r0, #5
+ 109 0056 FFF7FEFF 		bl	HAL_Delay
+ 110              	.LVL9:
+  62:Control/FILTER/filter.c ****     {
+ 111              		.loc 1 62 25 discriminator 3 view .LVU20
+  62:Control/FILTER/filter.c ****     {
+ 112              		.loc 1 62 26 is_stmt 0 discriminator 3 view .LVU21
+ 113 005a 0134     		adds	r4, r4, #1
+ 114              	.LVL10:
+ 115              	.L4:
+  62:Control/FILTER/filter.c ****     {
+ 116              		.loc 1 62 18 is_stmt 1 discriminator 1 view .LVU22
+  62:Control/FILTER/filter.c ****     {
+ 117              		.loc 1 62 5 is_stmt 0 discriminator 1 view .LVU23
+ 118 005c C72C     		cmp	r4, #199
+ 119 005e E9DD     		ble	.L5
+ 120              	.LBE4:
+  67:Control/FILTER/filter.c ****     }
+  68:Control/FILTER/filter.c ****     
+  69:Control/FILTER/filter.c ****     // 求平均值
+  70:Control/FILTER/filter.c ****     Gyro_X_Offset = (float)Sum / 200.0f;
+ 121              		.loc 1 70 5 is_stmt 1 view .LVU24
+ 122              		.loc 1 70 21 is_stmt 0 view .LVU25
+ 123 0060 2846     		mov	r0, r5
+ 124 0062 FFF7FEFF 		bl	__aeabi_i2f
+ 125              	.LVL11:
+ 126              		.loc 1 70 32 view .LVU26
+ 127 0066 0349     		ldr	r1, .L7
+ 128 0068 FFF7FEFF 		bl	__aeabi_fdiv
+ 129              	.LVL12:
+ 130              		.loc 1 70 19 view .LVU27
+ 131 006c 024B     		ldr	r3, .L7+4
+ 132 006e 1860     		str	r0, [r3]	@ float
+  71:Control/FILTER/filter.c **** }
+ 133              		.loc 1 71 1 view .LVU28
+ 134 0070 07B0     		add	sp, sp, #28
+ 135              	.LCFI2:
+ 136              		.cfi_def_cfa_offset 12
+ 137              		@ sp needed
+ 138 0072 30BD     		pop	{r4, r5, pc}
+ 139              	.LVL13:
+ 140              	.L8:
+ 141              		.loc 1 71 1 view .LVU29
+ 142              		.align	2
+ 143              	.L7:
+ 144 0074 00004843 		.word	1128792064
+ 145 0078 00000000 		.word	.LANCHOR0
+ 146              		.cfi_endproc
+ 147              	.LFE66:
+ 149              		.section	.text.MPU6050_Calibrate_Gyro_gz,"ax",%progbits
+ 150              		.align	1
+ARM GAS  /tmp/ccvGljQ4.s 			page 5
+
+
+ 151              		.global	MPU6050_Calibrate_Gyro_gz
+ 152              		.syntax unified
+ 153              		.thumb
+ 154              		.thumb_func
+ 155              		.fpu softvfp
+ 157              	MPU6050_Calibrate_Gyro_gz:
+ 158              	.LFB67:
+  72:Control/FILTER/filter.c **** 
+  73:Control/FILTER/filter.c **** // 新增：校准函数
+  74:Control/FILTER/filter.c **** void MPU6050_Calibrate_Gyro_gz(void)
+  75:Control/FILTER/filter.c **** {
+ 159              		.loc 1 75 1 is_stmt 1 view -0
+ 160              		.cfi_startproc
+ 161              		@ args = 0, pretend = 0, frame = 16
+ 162              		@ frame_needed = 0, uses_anonymous_args = 0
+ 163 0000 30B5     		push	{r4, r5, lr}
+ 164              	.LCFI3:
+ 165              		.cfi_def_cfa_offset 12
+ 166              		.cfi_offset 4, -12
+ 167              		.cfi_offset 5, -8
+ 168              		.cfi_offset 14, -4
+ 169 0002 87B0     		sub	sp, sp, #28
+ 170              	.LCFI4:
+ 171              		.cfi_def_cfa_offset 40
+  76:Control/FILTER/filter.c ****     int32_t Sum = 0;
+ 172              		.loc 1 76 5 view .LVU31
+ 173              	.LVL14:
+  77:Control/FILTER/filter.c ****     int16_t ax, ay, az, gx, gy, gz;
+ 174              		.loc 1 77 5 view .LVU32
+  78:Control/FILTER/filter.c **** 
+  79:Control/FILTER/filter.c ****     // 丢弃前几次数据：MPU6050 刚上电或复位时，前几组数据可能会波动较大
+  80:Control/FILTER/filter.c ****      for(int i=0; i<100; i++)
+ 175              		.loc 1 80 6 view .LVU33
+ 176              	.LBB5:
+ 177              		.loc 1 80 10 view .LVU34
+ 178              		.loc 1 80 14 is_stmt 0 view .LVU35
+ 179 0004 0024     		movs	r4, #0
+ 180              		.loc 1 80 6 view .LVU36
+ 181 0006 10E0     		b	.L10
+ 182              	.LVL15:
+ 183              	.L11:
+  81:Control/FILTER/filter.c ****     {
+  82:Control/FILTER/filter.c ****         MPU6050_GetData(&ax, &ay, &az, &gx, &gy, &gz);
+ 184              		.loc 1 82 9 is_stmt 1 discriminator 3 view .LVU37
+ 185 0008 03AB     		add	r3, sp, #12
+ 186 000a 0193     		str	r3, [sp, #4]
+ 187 000c 0DF10E03 		add	r3, sp, #14
+ 188 0010 0093     		str	r3, [sp]
+ 189 0012 04AB     		add	r3, sp, #16
+ 190 0014 0DF11202 		add	r2, sp, #18
+ 191 0018 05A9     		add	r1, sp, #20
+ 192 001a 0DF11600 		add	r0, sp, #22
+ 193 001e FFF7FEFF 		bl	MPU6050_GetData
+ 194              	.LVL16:
+  83:Control/FILTER/filter.c ****         HAL_Delay(5);
+ 195              		.loc 1 83 9 discriminator 3 view .LVU38
+ 196 0022 0520     		movs	r0, #5
+ARM GAS  /tmp/ccvGljQ4.s 			page 6
+
+
+ 197 0024 FFF7FEFF 		bl	HAL_Delay
+ 198              	.LVL17:
+  80:Control/FILTER/filter.c ****     {
+ 199              		.loc 1 80 26 discriminator 3 view .LVU39
+  80:Control/FILTER/filter.c ****     {
+ 200              		.loc 1 80 27 is_stmt 0 discriminator 3 view .LVU40
+ 201 0028 0134     		adds	r4, r4, #1
+ 202              	.LVL18:
+ 203              	.L10:
+  80:Control/FILTER/filter.c ****     {
+ 204              		.loc 1 80 19 is_stmt 1 discriminator 1 view .LVU41
+  80:Control/FILTER/filter.c ****     {
+ 205              		.loc 1 80 6 is_stmt 0 discriminator 1 view .LVU42
+ 206 002a 632C     		cmp	r4, #99
+ 207 002c ECDD     		ble	.L11
+ 208              	.LBE5:
+ 209              	.LBB6:
+  84:Control/FILTER/filter.c ****     }
+  85:Control/FILTER/filter.c ****     
+  86:Control/FILTER/filter.c ****     // 循环读 200 次，耗时约 1 秒
+  87:Control/FILTER/filter.c ****     for(int i=0; i<200; i++)
+ 210              		.loc 1 87 13 view .LVU43
+ 211 002e 0024     		movs	r4, #0
+ 212              	.LVL19:
+ 213              		.loc 1 87 13 view .LVU44
+ 214              	.LBE6:
+  76:Control/FILTER/filter.c ****     int16_t ax, ay, az, gx, gy, gz;
+ 215              		.loc 1 76 13 view .LVU45
+ 216 0030 2546     		mov	r5, r4
+ 217 0032 13E0     		b	.L12
+ 218              	.LVL20:
+ 219              	.L13:
+ 220              	.LBB7:
+  88:Control/FILTER/filter.c ****     {
+  89:Control/FILTER/filter.c ****         MPU6050_GetData(&ax, &ay, &az, &gx, &gy, &gz);
+ 221              		.loc 1 89 9 is_stmt 1 discriminator 3 view .LVU46
+ 222 0034 03AB     		add	r3, sp, #12
+ 223 0036 0193     		str	r3, [sp, #4]
+ 224 0038 0DF10E03 		add	r3, sp, #14
+ 225 003c 0093     		str	r3, [sp]
+ 226 003e 04AB     		add	r3, sp, #16
+ 227 0040 0DF11202 		add	r2, sp, #18
+ 228 0044 05A9     		add	r1, sp, #20
+ 229 0046 0DF11600 		add	r0, sp, #22
+ 230 004a FFF7FEFF 		bl	MPU6050_GetData
+ 231              	.LVL21:
+  90:Control/FILTER/filter.c ****         Sum += gz; // 累加 GX 数据
+ 232              		.loc 1 90 9 discriminator 3 view .LVU47
+ 233              		.loc 1 90 13 is_stmt 0 discriminator 3 view .LVU48
+ 234 004e BDF90C30 		ldrsh	r3, [sp, #12]
+ 235 0052 1D44     		add	r5, r5, r3
+ 236              	.LVL22:
+  91:Control/FILTER/filter.c ****         HAL_Delay(5);
+ 237              		.loc 1 91 9 is_stmt 1 discriminator 3 view .LVU49
+ 238 0054 0520     		movs	r0, #5
+ 239 0056 FFF7FEFF 		bl	HAL_Delay
+ 240              	.LVL23:
+ARM GAS  /tmp/ccvGljQ4.s 			page 7
+
+
+  87:Control/FILTER/filter.c ****     {
+ 241              		.loc 1 87 25 discriminator 3 view .LVU50
+  87:Control/FILTER/filter.c ****     {
+ 242              		.loc 1 87 26 is_stmt 0 discriminator 3 view .LVU51
+ 243 005a 0134     		adds	r4, r4, #1
+ 244              	.LVL24:
+ 245              	.L12:
+  87:Control/FILTER/filter.c ****     {
+ 246              		.loc 1 87 18 is_stmt 1 discriminator 1 view .LVU52
+  87:Control/FILTER/filter.c ****     {
+ 247              		.loc 1 87 5 is_stmt 0 discriminator 1 view .LVU53
+ 248 005c C72C     		cmp	r4, #199
+ 249 005e E9DD     		ble	.L13
+ 250              	.LBE7:
+  92:Control/FILTER/filter.c ****     }
+  93:Control/FILTER/filter.c ****     
+  94:Control/FILTER/filter.c ****     // 求平均值
+  95:Control/FILTER/filter.c ****     Gyro_Z_Offset = (float)Sum / 200.0f;
+ 251              		.loc 1 95 5 is_stmt 1 view .LVU54
+ 252              		.loc 1 95 21 is_stmt 0 view .LVU55
+ 253 0060 2846     		mov	r0, r5
+ 254 0062 FFF7FEFF 		bl	__aeabi_i2f
+ 255              	.LVL25:
+ 256              		.loc 1 95 32 view .LVU56
+ 257 0066 0349     		ldr	r1, .L15
+ 258 0068 FFF7FEFF 		bl	__aeabi_fdiv
+ 259              	.LVL26:
+ 260              		.loc 1 95 19 view .LVU57
+ 261 006c 024B     		ldr	r3, .L15+4
+ 262 006e 1860     		str	r0, [r3]	@ float
+  96:Control/FILTER/filter.c **** }
+ 263              		.loc 1 96 1 view .LVU58
+ 264 0070 07B0     		add	sp, sp, #28
+ 265              	.LCFI5:
+ 266              		.cfi_def_cfa_offset 12
+ 267              		@ sp needed
+ 268 0072 30BD     		pop	{r4, r5, pc}
+ 269              	.LVL27:
+ 270              	.L16:
+ 271              		.loc 1 96 1 view .LVU59
+ 272              		.align	2
+ 273              	.L15:
+ 274 0074 00004843 		.word	1128792064
+ 275 0078 00000000 		.word	.LANCHOR1
+ 276              		.cfi_endproc
+ 277              	.LFE67:
+ 279              		.global	__aeabi_i2d
+ 280              		.global	__aeabi_dmul
+ 281              		.global	__aeabi_d2f
+ 282              		.section	.text.Get_Accel_Angle,"ax",%progbits
+ 283              		.align	1
+ 284              		.global	Get_Accel_Angle
+ 285              		.syntax unified
+ 286              		.thumb
+ 287              		.thumb_func
+ 288              		.fpu softvfp
+ 290              	Get_Accel_Angle:
+ARM GAS  /tmp/ccvGljQ4.s 			page 8
+
+
+ 291              	.LVL28:
+ 292              	.LFB68:
+  97:Control/FILTER/filter.c **** 
+  98:Control/FILTER/filter.c **** // 计算加速度计的倾角 (结果是度)
+  99:Control/FILTER/filter.c **** // 参数：ay, az 是 MPU6050 读出来的原始数据 (int16_t)
+ 100:Control/FILTER/filter.c **** float Get_Accel_Angle(int16_t ay, int16_t az) 
+ 101:Control/FILTER/filter.c **** {
+ 293              		.loc 1 101 1 is_stmt 1 view -0
+ 294              		.cfi_startproc
+ 295              		@ args = 0, pretend = 0, frame = 0
+ 296              		@ frame_needed = 0, uses_anonymous_args = 0
+ 297              		.loc 1 101 1 is_stmt 0 view .LVU61
+ 298 0000 70B5     		push	{r4, r5, r6, lr}
+ 299              	.LCFI6:
+ 300              		.cfi_def_cfa_offset 16
+ 301              		.cfi_offset 4, -16
+ 302              		.cfi_offset 5, -12
+ 303              		.cfi_offset 6, -8
+ 304              		.cfi_offset 14, -4
+ 305 0002 0646     		mov	r6, r0
+ 102:Control/FILTER/filter.c ****     // 核心公式：angle = atan2(y, z)
+ 103:Control/FILTER/filter.c ****     // 乘以 57.296 是为了把 弧度 变成 角度 (180 / PI)
+ 104:Control/FILTER/filter.c ****     // 注意：这里可能需要根据你的安装方向调整，可能是 atan2(ay, az)
+ 105:Control/FILTER/filter.c ****     float angle = atan2(ay, az) * 57.296f; 
+ 306              		.loc 1 105 5 is_stmt 1 view .LVU62
+ 307              		.loc 1 105 19 is_stmt 0 view .LVU63
+ 308 0004 0846     		mov	r0, r1
+ 309              	.LVL29:
+ 310              		.loc 1 105 19 view .LVU64
+ 311 0006 FFF7FEFF 		bl	__aeabi_i2d
+ 312              	.LVL30:
+ 313              		.loc 1 105 19 view .LVU65
+ 314 000a 0446     		mov	r4, r0
+ 315 000c 0D46     		mov	r5, r1
+ 316 000e 3046     		mov	r0, r6
+ 317 0010 FFF7FEFF 		bl	__aeabi_i2d
+ 318              	.LVL31:
+ 319 0014 2246     		mov	r2, r4
+ 320 0016 2B46     		mov	r3, r5
+ 321 0018 FFF7FEFF 		bl	atan2
+ 322              	.LVL32:
+ 323              		.loc 1 105 33 view .LVU66
+ 324 001c 04A3     		adr	r3, .L19
+ 325 001e D3E90023 		ldrd	r2, [r3]
+ 326 0022 FFF7FEFF 		bl	__aeabi_dmul
+ 327              	.LVL33:
+ 328              		.loc 1 105 11 view .LVU67
+ 329 0026 FFF7FEFF 		bl	__aeabi_d2f
+ 330              	.LVL34:
+ 106:Control/FILTER/filter.c ****     
+ 107:Control/FILTER/filter.c ****     return angle;
+ 331              		.loc 1 107 5 is_stmt 1 view .LVU68
+ 108:Control/FILTER/filter.c **** }
+ 332              		.loc 1 108 1 is_stmt 0 view .LVU69
+ 333 002a 70BD     		pop	{r4, r5, r6, pc}
+ 334              	.L20:
+ 335 002c AFF30080 		.align	3
+ARM GAS  /tmp/ccvGljQ4.s 			page 9
+
+
+ 336              	.L19:
+ 337 0030 00000060 		.word	1610612736
+ 338 0034 E3A54C40 		.word	1078765027
+ 339              		.cfi_endproc
+ 340              	.LFE68:
+ 342              		.global	__aeabi_fsub
+ 343              		.section	.text.Get_Gyro_Rate,"ax",%progbits
+ 344              		.align	1
+ 345              		.global	Get_Gyro_Rate
+ 346              		.syntax unified
+ 347              		.thumb
+ 348              		.thumb_func
+ 349              		.fpu softvfp
+ 351              	Get_Gyro_Rate:
+ 352              	.LVL35:
+ 353              	.LFB69:
+ 109:Control/FILTER/filter.c **** 
+ 110:Control/FILTER/filter.c **** // 计算陀螺仪角速度 (结果是 度/秒)
+ 111:Control/FILTER/filter.c **** // 参数：gx 是 MPU6050 读出来的原始数据
+ 112:Control/FILTER/filter.c **** float Get_Gyro_Rate(int16_t gx) 
+ 113:Control/FILTER/filter.c **** {
+ 354              		.loc 1 113 1 is_stmt 1 view -0
+ 355              		.cfi_startproc
+ 356              		@ args = 0, pretend = 0, frame = 0
+ 357              		@ frame_needed = 0, uses_anonymous_args = 0
+ 358              		.loc 1 113 1 is_stmt 0 view .LVU71
+ 359 0000 08B5     		push	{r3, lr}
+ 360              	.LCFI7:
+ 361              		.cfi_def_cfa_offset 8
+ 362              		.cfi_offset 3, -8
+ 363              		.cfi_offset 14, -4
+ 114:Control/FILTER/filter.c ****     // 量程 ±2000 对应的灵敏度是 16.4 (32767/2000)
+ 115:Control/FILTER/filter.c ****     return (gx - Gyro_X_Offset) / 16.4f;
+ 364              		.loc 1 115 5 is_stmt 1 view .LVU72
+ 365              		.loc 1 115 16 is_stmt 0 view .LVU73
+ 366 0002 FFF7FEFF 		bl	__aeabi_i2f
+ 367              	.LVL36:
+ 368              		.loc 1 115 16 view .LVU74
+ 369 0006 044B     		ldr	r3, .L23
+ 370 0008 1968     		ldr	r1, [r3]	@ float
+ 371 000a FFF7FEFF 		bl	__aeabi_fsub
+ 372              	.LVL37:
+ 373              		.loc 1 115 33 view .LVU75
+ 374 000e 0349     		ldr	r1, .L23+4
+ 375 0010 FFF7FEFF 		bl	__aeabi_fdiv
+ 376              	.LVL38:
+ 116:Control/FILTER/filter.c **** }
+ 377              		.loc 1 116 1 view .LVU76
+ 378 0014 08BD     		pop	{r3, pc}
+ 379              	.L24:
+ 380 0016 00BF     		.align	2
+ 381              	.L23:
+ 382 0018 00000000 		.word	.LANCHOR0
+ 383 001c 33338341 		.word	1099117363
+ 384              		.cfi_endproc
+ 385              	.LFE69:
+ 387              		.section	.text.Get_Gyro_Rate_gz,"ax",%progbits
+ARM GAS  /tmp/ccvGljQ4.s 			page 10
+
+
+ 388              		.align	1
+ 389              		.global	Get_Gyro_Rate_gz
+ 390              		.syntax unified
+ 391              		.thumb
+ 392              		.thumb_func
+ 393              		.fpu softvfp
+ 395              	Get_Gyro_Rate_gz:
+ 396              	.LVL39:
+ 397              	.LFB70:
+ 117:Control/FILTER/filter.c **** 
+ 118:Control/FILTER/filter.c **** float Get_Gyro_Rate_gz(int16_t gz) 
+ 119:Control/FILTER/filter.c **** {
+ 398              		.loc 1 119 1 is_stmt 1 view -0
+ 399              		.cfi_startproc
+ 400              		@ args = 0, pretend = 0, frame = 0
+ 401              		@ frame_needed = 0, uses_anonymous_args = 0
+ 402              		.loc 1 119 1 is_stmt 0 view .LVU78
+ 403 0000 08B5     		push	{r3, lr}
+ 404              	.LCFI8:
+ 405              		.cfi_def_cfa_offset 8
+ 406              		.cfi_offset 3, -8
+ 407              		.cfi_offset 14, -4
+ 120:Control/FILTER/filter.c ****     // 量程 ±2000 对应的灵敏度是 16.4 (32767/2000)
+ 121:Control/FILTER/filter.c ****     return (gz - Gyro_Z_Offset) / 16.4f;
+ 408              		.loc 1 121 5 is_stmt 1 view .LVU79
+ 409              		.loc 1 121 16 is_stmt 0 view .LVU80
+ 410 0002 FFF7FEFF 		bl	__aeabi_i2f
+ 411              	.LVL40:
+ 412              		.loc 1 121 16 view .LVU81
+ 413 0006 044B     		ldr	r3, .L27
+ 414 0008 1968     		ldr	r1, [r3]	@ float
+ 415 000a FFF7FEFF 		bl	__aeabi_fsub
+ 416              	.LVL41:
+ 417              		.loc 1 121 33 view .LVU82
+ 418 000e 0349     		ldr	r1, .L27+4
+ 419 0010 FFF7FEFF 		bl	__aeabi_fdiv
+ 420              	.LVL42:
+ 122:Control/FILTER/filter.c **** }
+ 421              		.loc 1 122 1 view .LVU83
+ 422 0014 08BD     		pop	{r3, pc}
+ 423              	.L28:
+ 424 0016 00BF     		.align	2
+ 425              	.L27:
+ 426 0018 00000000 		.word	.LANCHOR1
+ 427 001c 33338341 		.word	1099117363
+ 428              		.cfi_endproc
+ 429              	.LFE70:
+ 431              		.global	__aeabi_fmul
+ 432              		.global	__aeabi_fadd
+ 433              		.section	.text.MPU6050_Update_Posture,"ax",%progbits
+ 434              		.align	1
+ 435              		.global	MPU6050_Update_Posture
+ 436              		.syntax unified
+ 437              		.thumb
+ 438              		.thumb_func
+ 439              		.fpu softvfp
+ 441              	MPU6050_Update_Posture:
+ARM GAS  /tmp/ccvGljQ4.s 			page 11
+
+
+ 442              	.LVL43:
+ 443              	.LFB71:
+ 123:Control/FILTER/filter.c **** 
+ 124:Control/FILTER/filter.c **** // 姿态解算函数
+ 125:Control/FILTER/filter.c **** void MPU6050_Update_Posture(int16_t ay, int16_t az, int16_t gx)
+ 126:Control/FILTER/filter.c **** {
+ 444              		.loc 1 126 1 is_stmt 1 view -0
+ 445              		.cfi_startproc
+ 446              		@ args = 0, pretend = 0, frame = 0
+ 447              		@ frame_needed = 0, uses_anonymous_args = 0
+ 448              		.loc 1 126 1 is_stmt 0 view .LVU85
+ 449 0000 70B5     		push	{r4, r5, r6, lr}
+ 450              	.LCFI9:
+ 451              		.cfi_def_cfa_offset 16
+ 452              		.cfi_offset 4, -16
+ 453              		.cfi_offset 5, -12
+ 454              		.cfi_offset 6, -8
+ 455              		.cfi_offset 14, -4
+ 456 0002 1446     		mov	r4, r2
+ 127:Control/FILTER/filter.c ****     // 1. 获取 两个“不完美”的输入
+ 128:Control/FILTER/filter.c ****     float Accel_Angle = Get_Accel_Angle(ay, az); // "静态准"的角度
+ 457              		.loc 1 128 5 is_stmt 1 view .LVU86
+ 458              		.loc 1 128 25 is_stmt 0 view .LVU87
+ 459 0004 FFF7FEFF 		bl	Get_Accel_Angle
+ 460              	.LVL44:
+ 461              		.loc 1 128 25 view .LVU88
+ 462 0008 0546     		mov	r5, r0
+ 463              	.LVL45:
+ 129:Control/FILTER/filter.c ****     float Gyro_Rate   = Get_Gyro_Rate(gx);       // "动态准"的速度
+ 464              		.loc 1 129 5 is_stmt 1 view .LVU89
+ 465              		.loc 1 129 25 is_stmt 0 view .LVU90
+ 466 000a 2046     		mov	r0, r4
+ 467              	.LVL46:
+ 468              		.loc 1 129 25 view .LVU91
+ 469 000c FFF7FEFF 		bl	Get_Gyro_Rate
+ 470              	.LVL47:
+ 130:Control/FILTER/filter.c **** 
+ 131:Control/FILTER/filter.c ****     // 2. 执行互补滤波公式
+ 132:Control/FILTER/filter.c ****     // Pitch = 0.95 * (上次角度 + 角速度积分) + 0.05 * (加速度角度)
+ 133:Control/FILTER/filter.c ****     Pitch_Angle = K_FILTER * (Pitch_Angle + Gyro_Rate * DT) + (1 - K_FILTER) * Accel_Angle;
+ 471              		.loc 1 133 5 is_stmt 1 view .LVU92
+ 472              		.loc 1 133 55 is_stmt 0 view .LVU93
+ 473 0010 0A49     		ldr	r1, .L31
+ 474 0012 FFF7FEFF 		bl	__aeabi_fmul
+ 475              	.LVL48:
+ 476              		.loc 1 133 43 view .LVU94
+ 477 0016 0A4E     		ldr	r6, .L31+4
+ 478 0018 3168     		ldr	r1, [r6]	@ float
+ 479 001a FFF7FEFF 		bl	__aeabi_fadd
+ 480              	.LVL49:
+ 481              		.loc 1 133 28 view .LVU95
+ 482 001e 0949     		ldr	r1, .L31+8
+ 483 0020 FFF7FEFF 		bl	__aeabi_fmul
+ 484              	.LVL50:
+ 485 0024 0446     		mov	r4, r0
+ 486              		.loc 1 133 78 view .LVU96
+ 487 0026 0849     		ldr	r1, .L31+12
+ARM GAS  /tmp/ccvGljQ4.s 			page 12
+
+
+ 488 0028 2846     		mov	r0, r5
+ 489 002a FFF7FEFF 		bl	__aeabi_fmul
+ 490              	.LVL51:
+ 491 002e 0146     		mov	r1, r0
+ 492              		.loc 1 133 61 view .LVU97
+ 493 0030 2046     		mov	r0, r4
+ 494 0032 FFF7FEFF 		bl	__aeabi_fadd
+ 495              	.LVL52:
+ 496              		.loc 1 133 17 view .LVU98
+ 497 0036 3060     		str	r0, [r6]	@ float
+ 134:Control/FILTER/filter.c **** }
+ 498              		.loc 1 134 1 view .LVU99
+ 499 0038 70BD     		pop	{r4, r5, r6, pc}
+ 500              	.LVL53:
+ 501              	.L32:
+ 502              		.loc 1 134 1 view .LVU100
+ 503 003a 00BF     		.align	2
+ 504              	.L31:
+ 505 003c 0AD7A33B 		.word	1000593162
+ 506 0040 00000000 		.word	.LANCHOR2
+ 507 0044 48E17A3F 		.word	1065017672
+ 508 0048 00D7A33C 		.word	1017370368
+ 509              		.cfi_endproc
+ 510              	.LFE71:
+ 512              		.section	.text.Filter_Init,"ax",%progbits
+ 513              		.align	1
+ 514              		.global	Filter_Init
+ 515              		.syntax unified
+ 516              		.thumb
+ 517              		.thumb_func
+ 518              		.fpu softvfp
+ 520              	Filter_Init:
+ 521              	.LFB65:
+  20:Control/FILTER/filter.c ****     int16_t ax, ay, az, gx, gy, gz;
+ 522              		.loc 1 20 1 is_stmt 1 view -0
+ 523              		.cfi_startproc
+ 524              		@ args = 0, pretend = 0, frame = 16
+ 525              		@ frame_needed = 0, uses_anonymous_args = 0
+ 526 0000 10B5     		push	{r4, lr}
+ 527              	.LCFI10:
+ 528              		.cfi_def_cfa_offset 8
+ 529              		.cfi_offset 4, -8
+ 530              		.cfi_offset 14, -4
+ 531 0002 86B0     		sub	sp, sp, #24
+ 532              	.LCFI11:
+ 533              		.cfi_def_cfa_offset 32
+  21:Control/FILTER/filter.c **** 
+ 534              		.loc 1 21 5 view .LVU102
+  24:Control/FILTER/filter.c **** 
+ 535              		.loc 1 24 5 view .LVU103
+ 536 0004 4FF4FA70 		mov	r0, #500
+ 537 0008 FFF7FEFF 		bl	HAL_Delay
+ 538              	.LVL54:
+  29:Control/FILTER/filter.c ****     {
+ 539              		.loc 1 29 5 view .LVU104
+ 540              	.LBB8:
+  29:Control/FILTER/filter.c ****     {
+ARM GAS  /tmp/ccvGljQ4.s 			page 13
+
+
+ 541              		.loc 1 29 9 view .LVU105
+  29:Control/FILTER/filter.c ****     {
+ 542              		.loc 1 29 13 is_stmt 0 view .LVU106
+ 543 000c 0024     		movs	r4, #0
+  29:Control/FILTER/filter.c ****     {
+ 544              		.loc 1 29 5 view .LVU107
+ 545 000e 18E0     		b	.L34
+ 546              	.LVL55:
+ 547              	.L35:
+  32:Control/FILTER/filter.c **** 
+ 548              		.loc 1 32 9 is_stmt 1 discriminator 3 view .LVU108
+ 549 0010 03AB     		add	r3, sp, #12
+ 550 0012 0193     		str	r3, [sp, #4]
+ 551 0014 0DF10E03 		add	r3, sp, #14
+ 552 0018 0093     		str	r3, [sp]
+ 553 001a 04AB     		add	r3, sp, #16
+ 554 001c 0DF11202 		add	r2, sp, #18
+ 555 0020 05A9     		add	r1, sp, #20
+ 556 0022 0DF11600 		add	r0, sp, #22
+ 557 0026 FFF7FEFF 		bl	MPU6050_GetData
+ 558              	.LVL56:
+  38:Control/FILTER/filter.c ****         
+ 559              		.loc 1 38 9 discriminator 3 view .LVU109
+ 560 002a BDF91020 		ldrsh	r2, [sp, #16]
+ 561 002e BDF91210 		ldrsh	r1, [sp, #18]
+ 562 0032 BDF91400 		ldrsh	r0, [sp, #20]
+ 563 0036 FFF7FEFF 		bl	MPU6050_Update_Posture
+ 564              	.LVL57:
+  41:Control/FILTER/filter.c ****     }
+ 565              		.loc 1 41 9 discriminator 3 view .LVU110
+ 566 003a 0520     		movs	r0, #5
+ 567 003c FFF7FEFF 		bl	HAL_Delay
+ 568              	.LVL58:
+  29:Control/FILTER/filter.c ****     {
+ 569              		.loc 1 29 29 discriminator 3 view .LVU111
+  29:Control/FILTER/filter.c ****     {
+ 570              		.loc 1 29 30 is_stmt 0 discriminator 3 view .LVU112
+ 571 0040 0134     		adds	r4, r4, #1
+ 572              	.LVL59:
+ 573              	.L34:
+  29:Control/FILTER/filter.c ****     {
+ 574              		.loc 1 29 20 is_stmt 1 discriminator 1 view .LVU113
+  29:Control/FILTER/filter.c ****     {
+ 575              		.loc 1 29 5 is_stmt 0 discriminator 1 view .LVU114
+ 576 0042 632C     		cmp	r4, #99
+ 577 0044 E4DD     		ble	.L35
+ 578              	.LBE8:
+  46:Control/FILTER/filter.c **** 
+ 579              		.loc 1 46 1 view .LVU115
+ 580 0046 06B0     		add	sp, sp, #24
+ 581              	.LCFI12:
+ 582              		.cfi_def_cfa_offset 8
+ 583              		@ sp needed
+ 584 0048 10BD     		pop	{r4, pc}
+  46:Control/FILTER/filter.c **** 
+ 585              		.loc 1 46 1 view .LVU116
+ 586              		.cfi_endproc
+ARM GAS  /tmp/ccvGljQ4.s 			page 14
+
+
+ 587              	.LFE65:
+ 589              		.global	Gyro_Z_Offset
+ 590              		.global	Gyro_X_Offset
+ 591              		.global	Pitch_Angle
+ 592              		.section	.bss.Pitch_Angle,"aw",%nobits
+ 593              		.align	2
+ 594              		.set	.LANCHOR2,. + 0
+ 597              	Pitch_Angle:
+ 598 0000 00000000 		.space	4
+ 599              		.section	.data.Gyro_X_Offset,"aw"
+ 600              		.align	2
+ 601              		.set	.LANCHOR0,. + 0
+ 604              	Gyro_X_Offset:
+ 605 0000 00001CC2 		.word	-1038352384
+ 606              		.section	.data.Gyro_Z_Offset,"aw"
+ 607              		.align	2
+ 608              		.set	.LANCHOR1,. + 0
+ 611              	Gyro_Z_Offset:
+ 612 0000 0000E8C1 		.word	-1041760256
+ 613              		.text
+ 614              	.Letext0:
+ 615              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 616              		.file 3 "Control/FILTER/filter.h"
+ 617              		.file 4 "/usr/include/newlib/math.h"
+ 618              		.file 5 "Hardware/MPU6050/mpu6050.h"
+ 619              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h"
+ARM GAS  /tmp/ccvGljQ4.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 filter.c
+     /tmp/ccvGljQ4.s:18     .text.MPU6050_Calibrate_Gyro:0000000000000000 $t
+     /tmp/ccvGljQ4.s:26     .text.MPU6050_Calibrate_Gyro:0000000000000000 MPU6050_Calibrate_Gyro
+     /tmp/ccvGljQ4.s:144    .text.MPU6050_Calibrate_Gyro:0000000000000074 $d
+     /tmp/ccvGljQ4.s:150    .text.MPU6050_Calibrate_Gyro_gz:0000000000000000 $t
+     /tmp/ccvGljQ4.s:157    .text.MPU6050_Calibrate_Gyro_gz:0000000000000000 MPU6050_Calibrate_Gyro_gz
+     /tmp/ccvGljQ4.s:274    .text.MPU6050_Calibrate_Gyro_gz:0000000000000074 $d
+     /tmp/ccvGljQ4.s:283    .text.Get_Accel_Angle:0000000000000000 $t
+     /tmp/ccvGljQ4.s:290    .text.Get_Accel_Angle:0000000000000000 Get_Accel_Angle
+     /tmp/ccvGljQ4.s:337    .text.Get_Accel_Angle:0000000000000030 $d
+     /tmp/ccvGljQ4.s:344    .text.Get_Gyro_Rate:0000000000000000 $t
+     /tmp/ccvGljQ4.s:351    .text.Get_Gyro_Rate:0000000000000000 Get_Gyro_Rate
+     /tmp/ccvGljQ4.s:382    .text.Get_Gyro_Rate:0000000000000018 $d
+     /tmp/ccvGljQ4.s:388    .text.Get_Gyro_Rate_gz:0000000000000000 $t
+     /tmp/ccvGljQ4.s:395    .text.Get_Gyro_Rate_gz:0000000000000000 Get_Gyro_Rate_gz
+     /tmp/ccvGljQ4.s:426    .text.Get_Gyro_Rate_gz:0000000000000018 $d
+     /tmp/ccvGljQ4.s:434    .text.MPU6050_Update_Posture:0000000000000000 $t
+     /tmp/ccvGljQ4.s:441    .text.MPU6050_Update_Posture:0000000000000000 MPU6050_Update_Posture
+     /tmp/ccvGljQ4.s:505    .text.MPU6050_Update_Posture:000000000000003c $d
+     /tmp/ccvGljQ4.s:513    .text.Filter_Init:0000000000000000 $t
+     /tmp/ccvGljQ4.s:520    .text.Filter_Init:0000000000000000 Filter_Init
+     /tmp/ccvGljQ4.s:611    .data.Gyro_Z_Offset:0000000000000000 Gyro_Z_Offset
+     /tmp/ccvGljQ4.s:604    .data.Gyro_X_Offset:0000000000000000 Gyro_X_Offset
+     /tmp/ccvGljQ4.s:597    .bss.Pitch_Angle:0000000000000000 Pitch_Angle
+     /tmp/ccvGljQ4.s:593    .bss.Pitch_Angle:0000000000000000 $d
+     /tmp/ccvGljQ4.s:600    .data.Gyro_X_Offset:0000000000000000 $d
+     /tmp/ccvGljQ4.s:607    .data.Gyro_Z_Offset:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+__aeabi_i2f
+__aeabi_fdiv
+MPU6050_GetData
+HAL_Delay
+__aeabi_i2d
+__aeabi_dmul
+__aeabi_d2f
+atan2
+__aeabi_fsub
+__aeabi_fmul
+__aeabi_fadd

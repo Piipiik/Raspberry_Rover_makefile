@@ -1,0 +1,695 @@
+ARM GAS  /tmp/ccvFhXFF.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"motor.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.abs_int,"ax",%progbits
+  16              		.align	1
+  17              		.arch armv7-m
+  18              		.syntax unified
+  19              		.thumb
+  20              		.thumb_func
+  21              		.fpu softvfp
+  23              	abs_int:
+  24              	.LVL0:
+  25              	.LFB65:
+  26              		.file 1 "Hardware/Motor/motor.c"
+   1:Hardware/Motor/motor.c **** #include "motor.h"
+   2:Hardware/Motor/motor.c **** 
+   3:Hardware/Motor/motor.c **** 
+   4:Hardware/Motor/motor.c **** // 内部辅助函数：求绝对值
+   5:Hardware/Motor/motor.c **** static int abs_int(int val) {
+  27              		.loc 1 5 29 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+   6:Hardware/Motor/motor.c ****     return (val < 0) ? -val : val;
+  32              		.loc 1 6 5 view .LVU1
+   7:Hardware/Motor/motor.c **** }
+  33              		.loc 1 7 1 is_stmt 0 view .LVU2
+  34 0000 0028     		cmp	r0, #0
+  35 0002 B8BF     		it	lt
+  36 0004 4042     		rsblt	r0, r0, #0
+  37              	.LVL1:
+  38              		.loc 1 7 1 view .LVU3
+  39 0006 7047     		bx	lr
+  40              		.cfi_endproc
+  41              	.LFE65:
+  43              		.section	.text.Motor_Init,"ax",%progbits
+  44              		.align	1
+  45              		.global	Motor_Init
+  46              		.syntax unified
+  47              		.thumb
+  48              		.thumb_func
+  49              		.fpu softvfp
+  51              	Motor_Init:
+  52              	.LVL2:
+  53              	.LFB66:
+ARM GAS  /tmp/ccvFhXFF.s 			page 2
+
+
+   8:Hardware/Motor/motor.c **** 
+   9:Hardware/Motor/motor.c **** /* ============================================================
+  10:Hardware/Motor/motor.c ****    [底层初始化] 将硬件资源绑定到对应的电机结构体上
+  11:Hardware/Motor/motor.c ****    ============================================================ */
+  12:Hardware/Motor/motor.c **** void Motor_Init(Motor_t *Motor)
+  13:Hardware/Motor/motor.c **** {
+  54              		.loc 1 13 1 is_stmt 1 view -0
+  55              		.cfi_startproc
+  56              		@ args = 0, pretend = 0, frame = 0
+  57              		@ frame_needed = 0, uses_anonymous_args = 0
+  58              		.loc 1 13 1 is_stmt 0 view .LVU5
+  59 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+  60              	.LCFI0:
+  61              		.cfi_def_cfa_offset 24
+  62              		.cfi_offset 3, -24
+  63              		.cfi_offset 4, -20
+  64              		.cfi_offset 5, -16
+  65              		.cfi_offset 6, -12
+  66              		.cfi_offset 7, -8
+  67              		.cfi_offset 14, -4
+  68 0002 0446     		mov	r4, r0
+  14:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  15:Hardware/Motor/motor.c ****     // 1. 左前轮 (LF) 配置
+  16:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  17:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].pwm_tim     = &htim8;
+  69              		.loc 1 17 5 is_stmt 1 view .LVU6
+  70              		.loc 1 17 33 is_stmt 0 view .LVU7
+  71 0004 394A     		ldr	r2, .L4
+  72 0006 0260     		str	r2, [r0]
+  18:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].pwm_channel = TIM_CHANNEL_2;
+  73              		.loc 1 18 5 is_stmt 1 view .LVU8
+  74              		.loc 1 18 33 is_stmt 0 view .LVU9
+  75 0008 0425     		movs	r5, #4
+  76 000a 4560     		str	r5, [r0, #4]
+  19:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].enc_tim     = &htim3;            // 假设用 TIM2 读编码器
+  77              		.loc 1 19 5 is_stmt 1 view .LVU10
+  78              		.loc 1 19 33 is_stmt 0 view .LVU11
+  79 000c 3849     		ldr	r1, .L4+4
+  80 000e 8160     		str	r1, [r0, #8]
+  20:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].dir_port    = GPIOB;
+  81              		.loc 1 20 5 is_stmt 1 view .LVU12
+  82              		.loc 1 20 33 is_stmt 0 view .LVU13
+  83 0010 384B     		ldr	r3, .L4+8
+  84 0012 C360     		str	r3, [r0, #12]
+  21:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].pin_IN1     = GPIO_PIN_4;
+  85              		.loc 1 21 5 is_stmt 1 view .LVU14
+  86              		.loc 1 21 33 is_stmt 0 view .LVU15
+  87 0014 4FF0100E 		mov	lr, #16
+  88 0018 A0F810E0 		strh	lr, [r0, #16]	@ movhi
+  22:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].pin_IN2     = GPIO_PIN_5;
+  89              		.loc 1 22 5 is_stmt 1 view .LVU16
+  90              		.loc 1 22 33 is_stmt 0 view .LVU17
+  91 001c 4FF0200C 		mov	ip, #32
+  92 0020 A0F812C0 		strh	ip, [r0, #18]	@ movhi
+  23:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].dead_zone   = 300;
+  93              		.loc 1 23 5 is_stmt 1 view .LVU18
+  94              		.loc 1 23 33 is_stmt 0 view .LVU19
+ARM GAS  /tmp/ccvFhXFF.s 			page 3
+
+
+  95 0024 4FF49673 		mov	r3, #300
+  96 0028 4361     		str	r3, [r0, #20]
+  24:Hardware/Motor/motor.c ****     Motor[MOTOR_LF].polarity    = -1;                 // 如果发现正转时速度为负，改成
+  97              		.loc 1 24 5 is_stmt 1 view .LVU20
+  98              		.loc 1 24 33 is_stmt 0 view .LVU21
+  99 002a 4FF0FF37 		mov	r7, #-1
+ 100 002e 8761     		str	r7, [r0, #24]
+  25:Hardware/Motor/motor.c **** 
+  26:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  27:Hardware/Motor/motor.c ****     // 2. 右前轮 (RF) 配置
+  28:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  29:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].pwm_tim     = &htim8;
+ 101              		.loc 1 29 5 is_stmt 1 view .LVU22
+ 102              		.loc 1 29 33 is_stmt 0 view .LVU23
+ 103 0030 4262     		str	r2, [r0, #36]
+  30:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].pwm_channel = TIM_CHANNEL_1;
+ 104              		.loc 1 30 5 is_stmt 1 view .LVU24
+ 105              		.loc 1 30 33 is_stmt 0 view .LVU25
+ 106 0032 0023     		movs	r3, #0
+ 107 0034 8362     		str	r3, [r0, #40]
+  31:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].enc_tim     = &htim2;            // 假设用 TIM3 读编码器
+ 108              		.loc 1 31 5 is_stmt 1 view .LVU26
+ 109              		.loc 1 31 33 is_stmt 0 view .LVU27
+ 110 0036 3048     		ldr	r0, .L4+12
+ 111              	.LVL3:
+ 112              		.loc 1 31 33 view .LVU28
+ 113 0038 E062     		str	r0, [r4, #44]
+  32:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].dir_port    = GPIOA;
+ 114              		.loc 1 32 5 is_stmt 1 view .LVU29
+ 115              		.loc 1 32 33 is_stmt 0 view .LVU30
+ 116 003a 3048     		ldr	r0, .L4+16
+ 117 003c 2063     		str	r0, [r4, #48]
+  33:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].pin_IN1     = GPIO_PIN_11;
+ 118              		.loc 1 33 5 is_stmt 1 view .LVU31
+ 119              		.loc 1 33 33 is_stmt 0 view .LVU32
+ 120 003e 4FF40060 		mov	r0, #2048
+ 121 0042 A086     		strh	r0, [r4, #52]	@ movhi
+  34:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].pin_IN2     = GPIO_PIN_8;
+ 122              		.loc 1 34 5 is_stmt 1 view .LVU33
+ 123              		.loc 1 34 33 is_stmt 0 view .LVU34
+ 124 0044 4FF48070 		mov	r0, #256
+ 125 0048 E086     		strh	r0, [r4, #54]	@ movhi
+  35:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].dead_zone   = 400;
+ 126              		.loc 1 35 5 is_stmt 1 view .LVU35
+ 127              		.loc 1 35 33 is_stmt 0 view .LVU36
+ 128 004a 4FF4C870 		mov	r0, #400
+ 129 004e A063     		str	r0, [r4, #56]
+  36:Hardware/Motor/motor.c ****     Motor[MOTOR_RF].polarity    = 1;                // 麦轮通常左右对称安装，右侧往�
+ 130              		.loc 1 36 5 is_stmt 1 view .LVU37
+ 131              		.loc 1 36 33 is_stmt 0 view .LVU38
+ 132 0050 0120     		movs	r0, #1
+ 133 0052 E063     		str	r0, [r4, #60]
+  37:Hardware/Motor/motor.c **** 
+  38:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  39:Hardware/Motor/motor.c ****     // 3. 左后轮 (LR) 配置
+  40:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  41:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].pwm_tim     = &htim8;
+ARM GAS  /tmp/ccvFhXFF.s 			page 4
+
+
+ 134              		.loc 1 41 5 is_stmt 1 view .LVU39
+ 135              		.loc 1 41 33 is_stmt 0 view .LVU40
+ 136 0054 A264     		str	r2, [r4, #72]
+  42:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].pwm_channel = TIM_CHANNEL_4;
+ 137              		.loc 1 42 5 is_stmt 1 view .LVU41
+ 138              		.loc 1 42 33 is_stmt 0 view .LVU42
+ 139 0056 0C26     		movs	r6, #12
+ 140 0058 E664     		str	r6, [r4, #76]
+  43:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].enc_tim     = &htim5;            // 假设用 TIM4 读编码器
+ 141              		.loc 1 43 5 is_stmt 1 view .LVU43
+ 142              		.loc 1 43 33 is_stmt 0 view .LVU44
+ 143 005a 294E     		ldr	r6, .L4+20
+ 144 005c 2665     		str	r6, [r4, #80]
+  44:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].dir_port    = GPIOC;             // 假设用到 PC 口
+ 145              		.loc 1 44 5 is_stmt 1 view .LVU45
+ 146              		.loc 1 44 33 is_stmt 0 view .LVU46
+ 147 005e 294E     		ldr	r6, .L4+24
+ 148 0060 6665     		str	r6, [r4, #84]
+  45:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].pin_IN1     = GPIO_PIN_4;
+ 149              		.loc 1 45 5 is_stmt 1 view .LVU47
+ 150              		.loc 1 45 33 is_stmt 0 view .LVU48
+ 151 0062 A4F858E0 		strh	lr, [r4, #88]	@ movhi
+  46:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].pin_IN2     = GPIO_PIN_5;
+ 152              		.loc 1 46 5 is_stmt 1 view .LVU49
+ 153              		.loc 1 46 33 is_stmt 0 view .LVU50
+ 154 0066 A4F85AC0 		strh	ip, [r4, #90]	@ movhi
+  47:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].dead_zone   = 250;
+ 155              		.loc 1 47 5 is_stmt 1 view .LVU51
+ 156              		.loc 1 47 33 is_stmt 0 view .LVU52
+ 157 006a 4FF0FA0C 		mov	ip, #250
+ 158 006e C4F85CC0 		str	ip, [r4, #92]
+  48:Hardware/Motor/motor.c ****     Motor[MOTOR_LR].polarity    = -1;
+ 159              		.loc 1 48 5 is_stmt 1 view .LVU53
+ 160              		.loc 1 48 33 is_stmt 0 view .LVU54
+ 161 0072 2766     		str	r7, [r4, #96]
+  49:Hardware/Motor/motor.c **** 
+  50:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  51:Hardware/Motor/motor.c ****     // 4. 右后轮 (RR) 配置
+  52:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  53:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].pwm_tim     = &htim8;
+ 162              		.loc 1 53 5 is_stmt 1 view .LVU55
+ 163              		.loc 1 53 33 is_stmt 0 view .LVU56
+ 164 0074 E266     		str	r2, [r4, #108]
+  54:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].pwm_channel = TIM_CHANNEL_3;
+ 165              		.loc 1 54 5 is_stmt 1 view .LVU57
+ 166              		.loc 1 54 33 is_stmt 0 view .LVU58
+ 167 0076 0822     		movs	r2, #8
+ 168 0078 2267     		str	r2, [r4, #112]
+  55:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].enc_tim     = &htim4;            // 假设用 TIM5 读编码器
+ 169              		.loc 1 55 5 is_stmt 1 view .LVU59
+ 170              		.loc 1 55 33 is_stmt 0 view .LVU60
+ 171 007a 234F     		ldr	r7, .L4+28
+ 172 007c 6767     		str	r7, [r4, #116]
+  56:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].dir_port    = GPIOC;
+ 173              		.loc 1 56 5 is_stmt 1 view .LVU61
+ 174              		.loc 1 56 33 is_stmt 0 view .LVU62
+ 175 007e A667     		str	r6, [r4, #120]
+ARM GAS  /tmp/ccvFhXFF.s 			page 5
+
+
+  57:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].pin_IN1     = GPIO_PIN_3;
+ 176              		.loc 1 57 5 is_stmt 1 view .LVU63
+ 177              		.loc 1 57 33 is_stmt 0 view .LVU64
+ 178 0080 A4F87C20 		strh	r2, [r4, #124]	@ movhi
+  58:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].pin_IN2     = GPIO_PIN_2;
+ 179              		.loc 1 58 5 is_stmt 1 view .LVU65
+ 180              		.loc 1 58 33 is_stmt 0 view .LVU66
+ 181 0084 A4F87E50 		strh	r5, [r4, #126]	@ movhi
+  59:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].dead_zone   = 350;
+ 182              		.loc 1 59 5 is_stmt 1 view .LVU67
+ 183              		.loc 1 59 33 is_stmt 0 view .LVU68
+ 184 0088 4FF4AF72 		mov	r2, #350
+ 185 008c C4F88020 		str	r2, [r4, #128]
+  60:Hardware/Motor/motor.c ****     Motor[MOTOR_RR].polarity    = 1;
+ 186              		.loc 1 60 5 is_stmt 1 view .LVU69
+ 187              		.loc 1 60 33 is_stmt 0 view .LVU70
+ 188 0090 C4F88400 		str	r0, [r4, #132]
+  61:Hardware/Motor/motor.c **** 
+  62:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  63:Hardware/Motor/motor.c ****     // 5. 启动所有外设 (PWM 与 编码器模式)
+  64:Hardware/Motor/motor.c ****     // --------------------------------------------------------
+  65:Hardware/Motor/motor.c ****     // 开启电机驱动板的总体使能引脚 (STBY/EN)，如果有的话
+  66:Hardware/Motor/motor.c ****     // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET); 
+  67:Hardware/Motor/motor.c **** 
+  68:Hardware/Motor/motor.c ****     // 启动 4路 编码器之前，强制把硬件计数器清零！
+  69:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COUNTER(Motor[MOTOR_LF].enc_tim, 0);
+ 189              		.loc 1 69 5 is_stmt 1 view .LVU71
+ 190 0094 0A68     		ldr	r2, [r1]
+ 191 0096 5362     		str	r3, [r2, #36]
+  70:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COUNTER(Motor[MOTOR_RF].enc_tim, 0);
+ 192              		.loc 1 70 5 view .LVU72
+ 193 0098 E26A     		ldr	r2, [r4, #44]
+ 194 009a 1268     		ldr	r2, [r2]
+ 195 009c 5362     		str	r3, [r2, #36]
+  71:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COUNTER(Motor[MOTOR_LR].enc_tim, 0);
+ 196              		.loc 1 71 5 view .LVU73
+ 197 009e 226D     		ldr	r2, [r4, #80]
+ 198 00a0 1268     		ldr	r2, [r2]
+ 199 00a2 5362     		str	r3, [r2, #36]
+  72:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COUNTER(Motor[MOTOR_RR].enc_tim, 0);
+ 200              		.loc 1 72 5 view .LVU74
+ 201 00a4 626F     		ldr	r2, [r4, #116]
+ 202 00a6 1268     		ldr	r2, [r2]
+ 203 00a8 5362     		str	r3, [r2, #36]
+  73:Hardware/Motor/motor.c **** 
+  74:Hardware/Motor/motor.c ****     // 启动 4路 PWM
+  75:Hardware/Motor/motor.c ****     HAL_TIM_PWM_Start(Motor[MOTOR_LF].pwm_tim, Motor[MOTOR_LF].pwm_channel);
+ 204              		.loc 1 75 5 view .LVU75
+ 205 00aa 6168     		ldr	r1, [r4, #4]
+ 206 00ac 2068     		ldr	r0, [r4]
+ 207 00ae FFF7FEFF 		bl	HAL_TIM_PWM_Start
+ 208              	.LVL4:
+  76:Hardware/Motor/motor.c ****     HAL_TIM_PWM_Start(Motor[MOTOR_RF].pwm_tim, Motor[MOTOR_RF].pwm_channel);
+ 209              		.loc 1 76 5 view .LVU76
+ 210 00b2 A16A     		ldr	r1, [r4, #40]
+ 211 00b4 606A     		ldr	r0, [r4, #36]
+ 212 00b6 FFF7FEFF 		bl	HAL_TIM_PWM_Start
+ARM GAS  /tmp/ccvFhXFF.s 			page 6
+
+
+ 213              	.LVL5:
+  77:Hardware/Motor/motor.c ****     HAL_TIM_PWM_Start(Motor[MOTOR_LR].pwm_tim, Motor[MOTOR_LR].pwm_channel);
+ 214              		.loc 1 77 5 view .LVU77
+ 215 00ba E16C     		ldr	r1, [r4, #76]
+ 216 00bc A06C     		ldr	r0, [r4, #72]
+ 217 00be FFF7FEFF 		bl	HAL_TIM_PWM_Start
+ 218              	.LVL6:
+  78:Hardware/Motor/motor.c ****     HAL_TIM_PWM_Start(Motor[MOTOR_RR].pwm_tim, Motor[MOTOR_RR].pwm_channel);
+ 219              		.loc 1 78 5 view .LVU78
+ 220 00c2 216F     		ldr	r1, [r4, #112]
+ 221 00c4 E06E     		ldr	r0, [r4, #108]
+ 222 00c6 FFF7FEFF 		bl	HAL_TIM_PWM_Start
+ 223              	.LVL7:
+  79:Hardware/Motor/motor.c **** 
+  80:Hardware/Motor/motor.c ****     // 启动 4路 编码器
+  81:Hardware/Motor/motor.c ****     HAL_TIM_Encoder_Start(Motor[MOTOR_LF].enc_tim, TIM_CHANNEL_ALL);
+ 224              		.loc 1 81 5 view .LVU79
+ 225 00ca 3C21     		movs	r1, #60
+ 226 00cc A068     		ldr	r0, [r4, #8]
+ 227 00ce FFF7FEFF 		bl	HAL_TIM_Encoder_Start
+ 228              	.LVL8:
+  82:Hardware/Motor/motor.c ****     HAL_TIM_Encoder_Start(Motor[MOTOR_RF].enc_tim, TIM_CHANNEL_ALL);
+ 229              		.loc 1 82 5 view .LVU80
+ 230 00d2 3C21     		movs	r1, #60
+ 231 00d4 E06A     		ldr	r0, [r4, #44]
+ 232 00d6 FFF7FEFF 		bl	HAL_TIM_Encoder_Start
+ 233              	.LVL9:
+  83:Hardware/Motor/motor.c ****     HAL_TIM_Encoder_Start(Motor[MOTOR_LR].enc_tim, TIM_CHANNEL_ALL);
+ 234              		.loc 1 83 5 view .LVU81
+ 235 00da 3C21     		movs	r1, #60
+ 236 00dc 206D     		ldr	r0, [r4, #80]
+ 237 00de FFF7FEFF 		bl	HAL_TIM_Encoder_Start
+ 238              	.LVL10:
+  84:Hardware/Motor/motor.c ****     HAL_TIM_Encoder_Start(Motor[MOTOR_RR].enc_tim, TIM_CHANNEL_ALL);
+ 239              		.loc 1 84 5 view .LVU82
+ 240 00e2 3C21     		movs	r1, #60
+ 241 00e4 606F     		ldr	r0, [r4, #116]
+ 242 00e6 FFF7FEFF 		bl	HAL_TIM_Encoder_Start
+ 243              	.LVL11:
+  85:Hardware/Motor/motor.c **** }
+ 244              		.loc 1 85 1 is_stmt 0 view .LVU83
+ 245 00ea F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 246              	.LVL12:
+ 247              	.L5:
+ 248              		.loc 1 85 1 view .LVU84
+ 249              		.align	2
+ 250              	.L4:
+ 251 00ec 00000000 		.word	htim8
+ 252 00f0 00000000 		.word	htim3
+ 253 00f4 000C0140 		.word	1073810432
+ 254 00f8 00000000 		.word	htim2
+ 255 00fc 00080140 		.word	1073809408
+ 256 0100 00000000 		.word	htim5
+ 257 0104 00100140 		.word	1073811456
+ 258 0108 00000000 		.word	htim4
+ 259              		.cfi_endproc
+ 260              	.LFE66:
+ARM GAS  /tmp/ccvFhXFF.s 			page 7
+
+
+ 262              		.section	.text.Motor_UpdateSpeed,"ax",%progbits
+ 263              		.align	1
+ 264              		.global	Motor_UpdateSpeed
+ 265              		.syntax unified
+ 266              		.thumb
+ 267              		.thumb_func
+ 268              		.fpu softvfp
+ 270              	Motor_UpdateSpeed:
+ 271              	.LVL13:
+ 272              	.LFB67:
+  86:Hardware/Motor/motor.c **** 
+  87:Hardware/Motor/motor.c **** /* ============================================================
+  88:Hardware/Motor/motor.c ****    [测速函数] 传入指定电机，读取它的速度并清零计数器
+  89:Hardware/Motor/motor.c ****    ============================================================ */
+  90:Hardware/Motor/motor.c **** void Motor_UpdateSpeed(Motor_t *motor)
+  91:Hardware/Motor/motor.c **** {
+ 273              		.loc 1 91 1 is_stmt 1 view -0
+ 274              		.cfi_startproc
+ 275              		@ args = 0, pretend = 0, frame = 0
+ 276              		@ frame_needed = 0, uses_anonymous_args = 0
+ 277              		@ link register save eliminated.
+  92:Hardware/Motor/motor.c ****     // 1. 读取计数值 (强转为有符号的16位整数，利用溢出特性处理正负)
+  93:Hardware/Motor/motor.c ****     int16_t speed = (int16_t)__HAL_TIM_GET_COUNTER(motor->enc_tim);
+ 278              		.loc 1 93 5 view .LVU86
+ 279              		.loc 1 93 30 is_stmt 0 view .LVU87
+ 280 0000 8368     		ldr	r3, [r0, #8]
+ 281 0002 1A68     		ldr	r2, [r3]
+ 282 0004 536A     		ldr	r3, [r2, #36]
+ 283              	.LVL14:
+  94:Hardware/Motor/motor.c ****     
+  95:Hardware/Motor/motor.c ****     // 2. 清零计数器，为下一个周期做准备
+  96:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COUNTER(motor->enc_tim, 0);
+ 284              		.loc 1 96 5 is_stmt 1 view .LVU88
+ 285 0006 0021     		movs	r1, #0
+ 286 0008 5162     		str	r1, [r2, #36]
+  97:Hardware/Motor/motor.c ****     
+  98:Hardware/Motor/motor.c ****     // 3. 乘以极性标志，修正因为硬件安装导致的反向问题，存入结构体
+  99:Hardware/Motor/motor.c ****     motor->current_speed = speed * motor->polarity; 
+ 287              		.loc 1 99 5 view .LVU89
+ 288              		.loc 1 99 41 is_stmt 0 view .LVU90
+ 289 000a 8269     		ldr	r2, [r0, #24]
+ 290              		.loc 1 99 26 view .LVU91
+ 291 000c 02FB03F3 		mul	r3, r2, r3
+ 292              	.LVL15:
+ 293              		.loc 1 99 26 view .LVU92
+ 294 0010 8383     		strh	r3, [r0, #28]	@ movhi
+ 100:Hardware/Motor/motor.c **** }
+ 295              		.loc 1 100 1 view .LVU93
+ 296 0012 7047     		bx	lr
+ 297              		.cfi_endproc
+ 298              	.LFE67:
+ 300              		.section	.text.Motor_SetPWM,"ax",%progbits
+ 301              		.align	1
+ 302              		.global	Motor_SetPWM
+ 303              		.syntax unified
+ 304              		.thumb
+ 305              		.thumb_func
+ARM GAS  /tmp/ccvFhXFF.s 			page 8
+
+
+ 306              		.fpu softvfp
+ 308              	Motor_SetPWM:
+ 309              	.LVL16:
+ 310              	.LFB68:
+ 101:Hardware/Motor/motor.c **** 
+ 102:Hardware/Motor/motor.c **** /* ============================================================
+ 103:Hardware/Motor/motor.c ****    [驱动函数] 传入指定电机和目标PWM，执行驱动
+ 104:Hardware/Motor/motor.c ****    ============================================================ */
+ 105:Hardware/Motor/motor.c **** void Motor_SetPWM(Motor_t *motor, int pwm_val)
+ 106:Hardware/Motor/motor.c **** {
+ 311              		.loc 1 106 1 is_stmt 1 view -0
+ 312              		.cfi_startproc
+ 313              		@ args = 0, pretend = 0, frame = 0
+ 314              		@ frame_needed = 0, uses_anonymous_args = 0
+ 315              		.loc 1 106 1 is_stmt 0 view .LVU95
+ 316 0000 38B5     		push	{r3, r4, r5, lr}
+ 317              	.LCFI1:
+ 318              		.cfi_def_cfa_offset 16
+ 319              		.cfi_offset 3, -16
+ 320              		.cfi_offset 4, -12
+ 321              		.cfi_offset 5, -8
+ 322              		.cfi_offset 14, -4
+ 323 0002 0446     		mov	r4, r0
+ 107:Hardware/Motor/motor.c ****     int final_pwm = 0;
+ 324              		.loc 1 107 5 is_stmt 1 view .LVU96
+ 325              	.LVL17:
+ 108:Hardware/Motor/motor.c **** 
+ 109:Hardware/Motor/motor.c ****     // 同样乘以极性标志，保证代码给正数车就往前走
+ 110:Hardware/Motor/motor.c ****     // pwm_val = pwm_val * motor->polarity; 
+ 111:Hardware/Motor/motor.c **** 
+ 112:Hardware/Motor/motor.c ****     // 1. 方向与死区处理
+ 113:Hardware/Motor/motor.c ****     if (pwm_val > 0) // 正转
+ 326              		.loc 1 113 5 view .LVU97
+ 327              		.loc 1 113 8 is_stmt 0 view .LVU98
+ 328 0004 0D1E     		subs	r5, r1, #0
+ 329 0006 13DC     		bgt	.L19
+ 114:Hardware/Motor/motor.c ****     {
+ 115:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_SET);
+ 116:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN2, GPIO_PIN_RESET);
+ 117:Hardware/Motor/motor.c ****         // final_pwm = pwm_val + motor->dead_zone;
+ 118:Hardware/Motor/motor.c ****         final_pwm = (pwm_val < motor->dead_zone) ? motor->dead_zone : pwm_val;
+ 119:Hardware/Motor/motor.c ****     }
+ 120:Hardware/Motor/motor.c ****     else if (pwm_val < 0) // 反转
+ 330              		.loc 1 120 10 is_stmt 1 view .LVU99
+ 331              		.loc 1 120 13 is_stmt 0 view .LVU100
+ 332 0008 002D     		cmp	r5, #0
+ 333 000a 25DB     		blt	.L20
+ 121:Hardware/Motor/motor.c ****     {
+ 122:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_RESET);
+ 123:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN2, GPIO_PIN_SET);
+ 124:Hardware/Motor/motor.c ****         // final_pwm = abs_int(pwm_val) + motor->dead_zone;
+ 125:Hardware/Motor/motor.c ****         final_pwm = (abs_int(pwm_val) < motor->dead_zone) ? motor->dead_zone : abs_int(pwm_val);
+ 126:Hardware/Motor/motor.c ****     }
+ 127:Hardware/Motor/motor.c ****     else // 停止
+ 128:Hardware/Motor/motor.c ****     {
+ 129:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_RESET);
+ 334              		.loc 1 129 9 is_stmt 1 view .LVU101
+ARM GAS  /tmp/ccvFhXFF.s 			page 9
+
+
+ 335 000c 0022     		movs	r2, #0
+ 336 000e 018A     		ldrh	r1, [r0, #16]
+ 337              	.LVL18:
+ 338              		.loc 1 129 9 is_stmt 0 view .LVU102
+ 339 0010 C068     		ldr	r0, [r0, #12]
+ 340              	.LVL19:
+ 341              		.loc 1 129 9 view .LVU103
+ 342 0012 FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 343              	.LVL20:
+ 130:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN2, GPIO_PIN_RESET);
+ 344              		.loc 1 130 9 is_stmt 1 view .LVU104
+ 345 0016 0022     		movs	r2, #0
+ 346 0018 618A     		ldrh	r1, [r4, #18]
+ 347 001a E068     		ldr	r0, [r4, #12]
+ 348 001c FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 349              	.LVL21:
+ 131:Hardware/Motor/motor.c ****         final_pwm = 0;
+ 350              		.loc 1 131 9 view .LVU105
+ 132:Hardware/Motor/motor.c ****     }
+ 133:Hardware/Motor/motor.c **** 
+ 134:Hardware/Motor/motor.c ****     // 2. 限幅保护，防止 PWM 超过定时器 ARR 设定值导致电平翻转乱套
+ 135:Hardware/Motor/motor.c ****     if (final_pwm > PWM_MAX) 
+ 351              		.loc 1 135 5 view .LVU106
+ 131:Hardware/Motor/motor.c ****         final_pwm = 0;
+ 352              		.loc 1 131 19 is_stmt 0 view .LVU107
+ 353 0020 0020     		movs	r0, #0
+ 354              	.LVL22:
+ 355              	.L12:
+ 136:Hardware/Motor/motor.c ****     {
+ 137:Hardware/Motor/motor.c ****         final_pwm = PWM_MAX;
+ 138:Hardware/Motor/motor.c ****     }
+ 139:Hardware/Motor/motor.c **** 
+ 140:Hardware/Motor/motor.c ****     // 3. 记录当前输出并写入寄存器
+ 141:Hardware/Motor/motor.c ****     motor->out_pwm = final_pwm;
+ 356              		.loc 1 141 5 is_stmt 1 view .LVU108
+ 357              		.loc 1 141 20 is_stmt 0 view .LVU109
+ 358 0022 2062     		str	r0, [r4, #32]
+ 142:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COMPARE(motor->pwm_tim, motor->pwm_channel, final_pwm);
+ 359              		.loc 1 142 5 is_stmt 1 view .LVU110
+ 360 0024 6368     		ldr	r3, [r4, #4]
+ 361 0026 4BBB     		cbnz	r3, .L13
+ 362              		.loc 1 142 5 is_stmt 0 discriminator 1 view .LVU111
+ 363 0028 2368     		ldr	r3, [r4]
+ 364 002a 1B68     		ldr	r3, [r3]
+ 365 002c 5863     		str	r0, [r3, #52]
+ 366              	.L7:
+ 143:Hardware/Motor/motor.c **** }...
+ 367              		.loc 1 143 1 view .LVU112
+ 368 002e 38BD     		pop	{r3, r4, r5, pc}
+ 369              	.LVL23:
+ 370              	.L19:
+ 115:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_SET);
+ 371              		.loc 1 115 9 is_stmt 1 view .LVU113
+ 372 0030 0122     		movs	r2, #1
+ 373 0032 018A     		ldrh	r1, [r0, #16]
+ 374              	.LVL24:
+ 115:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_SET);
+ARM GAS  /tmp/ccvFhXFF.s 			page 10
+
+
+ 375              		.loc 1 115 9 is_stmt 0 view .LVU114
+ 376 0034 C068     		ldr	r0, [r0, #12]
+ 377              	.LVL25:
+ 115:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_SET);
+ 378              		.loc 1 115 9 view .LVU115
+ 379 0036 FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 380              	.LVL26:
+ 116:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN2, GPIO_PIN_RESET);
+ 381              		.loc 1 116 9 is_stmt 1 view .LVU116
+ 382 003a 0022     		movs	r2, #0
+ 383 003c 618A     		ldrh	r1, [r4, #18]
+ 384 003e E068     		ldr	r0, [r4, #12]
+ 385 0040 FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 386              	.LVL27:
+ 118:Hardware/Motor/motor.c ****         final_pwm = (pwm_val < motor->dead_zone) ? motor->dead_zone : pwm_val;
+ 387              		.loc 1 118 9 view .LVU117
+ 118:Hardware/Motor/motor.c ****         final_pwm = (pwm_val < motor->dead_zone) ? motor->dead_zone : pwm_val;
+ 388              		.loc 1 118 37 is_stmt 0 view .LVU118
+ 389 0044 6069     		ldr	r0, [r4, #20]
+ 118:Hardware/Motor/motor.c ****         final_pwm = (pwm_val < motor->dead_zone) ? motor->dead_zone : pwm_val;
+ 390              		.loc 1 118 19 view .LVU119
+ 391 0046 A842     		cmp	r0, r5
+ 392 0048 B8BF     		it	lt
+ 393 004a 2846     		movlt	r0, r5
+ 394              	.LVL28:
+ 395              	.L9:
+ 135:Hardware/Motor/motor.c ****     if (final_pwm > PWM_MAX) 
+ 396              		.loc 1 135 5 is_stmt 1 view .LVU120
+ 135:Hardware/Motor/motor.c ****     if (final_pwm > PWM_MAX) 
+ 397              		.loc 1 135 8 is_stmt 0 view .LVU121
+ 398 004c 40F6AC53 		movw	r3, #3500
+ 399 0050 9842     		cmp	r0, r3
+ 400 0052 E6DD     		ble	.L12
+ 137:Hardware/Motor/motor.c ****         final_pwm = PWM_MAX;
+ 401              		.loc 1 137 19 view .LVU122
+ 402 0054 1846     		mov	r0, r3
+ 403              	.LVL29:
+ 137:Hardware/Motor/motor.c ****         final_pwm = PWM_MAX;
+ 404              		.loc 1 137 19 view .LVU123
+ 405 0056 E4E7     		b	.L12
+ 406              	.LVL30:
+ 407              	.L20:
+ 122:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_RESET);
+ 408              		.loc 1 122 9 is_stmt 1 view .LVU124
+ 409 0058 0022     		movs	r2, #0
+ 410 005a 018A     		ldrh	r1, [r0, #16]
+ 411              	.LVL31:
+ 122:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_RESET);
+ 412              		.loc 1 122 9 is_stmt 0 view .LVU125
+ 413 005c C068     		ldr	r0, [r0, #12]
+ 414              	.LVL32:
+ 122:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN1, GPIO_PIN_RESET);
+ 415              		.loc 1 122 9 view .LVU126
+ 416 005e FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 417              	.LVL33:
+ 123:Hardware/Motor/motor.c ****         HAL_GPIO_WritePin(motor->dir_port, motor->pin_IN2, GPIO_PIN_SET);
+ 418              		.loc 1 123 9 is_stmt 1 view .LVU127
+ARM GAS  /tmp/ccvFhXFF.s 			page 11
+
+
+ 419 0062 0122     		movs	r2, #1
+ 420 0064 618A     		ldrh	r1, [r4, #18]
+ 421 0066 E068     		ldr	r0, [r4, #12]
+ 422 0068 FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 423              	.LVL34:
+ 125:Hardware/Motor/motor.c ****         final_pwm = (abs_int(pwm_val) < motor->dead_zone) ? motor->dead_zone : abs_int(pwm_val);
+ 424              		.loc 1 125 9 view .LVU128
+ 125:Hardware/Motor/motor.c ****         final_pwm = (abs_int(pwm_val) < motor->dead_zone) ? motor->dead_zone : abs_int(pwm_val);
+ 425              		.loc 1 125 22 is_stmt 0 view .LVU129
+ 426 006c 2846     		mov	r0, r5
+ 427 006e FFF7FEFF 		bl	abs_int
+ 428              	.LVL35:
+ 125:Hardware/Motor/motor.c ****         final_pwm = (abs_int(pwm_val) < motor->dead_zone) ? motor->dead_zone : abs_int(pwm_val);
+ 429              		.loc 1 125 46 view .LVU130
+ 430 0072 6369     		ldr	r3, [r4, #20]
+ 125:Hardware/Motor/motor.c ****         final_pwm = (abs_int(pwm_val) < motor->dead_zone) ? motor->dead_zone : abs_int(pwm_val);
+ 431              		.loc 1 125 78 view .LVU131
+ 432 0074 9842     		cmp	r0, r3
+ 433 0076 E9DA     		bge	.L9
+ 434 0078 1846     		mov	r0, r3
+ 435 007a E7E7     		b	.L9
+ 436              	.LVL36:
+ 437              	.L13:
+ 142:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COMPARE(motor->pwm_tim, motor->pwm_channel, final_pwm);
+ 438              		.loc 1 142 5 discriminator 2 view .LVU132
+ 439 007c 042B     		cmp	r3, #4
+ 440 007e 05D0     		beq	.L21
+ 142:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COMPARE(motor->pwm_tim, motor->pwm_channel, final_pwm);
+ 441              		.loc 1 142 5 discriminator 4 view .LVU133
+ 442 0080 082B     		cmp	r3, #8
+ 443 0082 07D0     		beq	.L22
+ 142:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COMPARE(motor->pwm_tim, motor->pwm_channel, final_pwm);
+ 444              		.loc 1 142 5 discriminator 7 view .LVU134
+ 445 0084 2368     		ldr	r3, [r4]
+ 446 0086 1B68     		ldr	r3, [r3]
+ 447 0088 1864     		str	r0, [r3, #64]
+ 448              		.loc 1 143 1 discriminator 7 view .LVU135
+ 449 008a D0E7     		b	.L7
+ 450              	.L21:
+ 142:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COMPARE(motor->pwm_tim, motor->pwm_channel, final_pwm);
+ 451              		.loc 1 142 5 discriminator 3 view .LVU136
+ 452 008c 2368     		ldr	r3, [r4]
+ 453 008e 1B68     		ldr	r3, [r3]
+ 454 0090 9863     		str	r0, [r3, #56]
+ 455 0092 CCE7     		b	.L7
+ 456              	.L22:
+ 142:Hardware/Motor/motor.c ****     __HAL_TIM_SET_COMPARE(motor->pwm_tim, motor->pwm_channel, final_pwm);
+ 457              		.loc 1 142 5 discriminator 6 view .LVU137
+ 458 0094 2368     		ldr	r3, [r4]
+ 459 0096 1B68     		ldr	r3, [r3]
+ 460 0098 D863     		str	r0, [r3, #60]
+ 461 009a C8E7     		b	.L7
+ 462              		.cfi_endproc
+ 463              	.LFE68:
+ 465              		.text
+ 466              	.Letext0:
+ 467              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ARM GAS  /tmp/ccvFhXFF.s 			page 12
+
+
+ 468              		.file 3 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+ 469              		.file 4 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 470              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h"
+ 471              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h"
+ 472              		.file 7 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h"
+ 473              		.file 8 "Core/Inc/tim.h"
+ 474              		.file 9 "Core/Inc/global.h"
+ 475              		.file 10 "Hardware/Motor/motor.h"
+ARM GAS  /tmp/ccvFhXFF.s 			page 13
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 motor.c
+     /tmp/ccvFhXFF.s:16     .text.abs_int:0000000000000000 $t
+     /tmp/ccvFhXFF.s:23     .text.abs_int:0000000000000000 abs_int
+     /tmp/ccvFhXFF.s:44     .text.Motor_Init:0000000000000000 $t
+     /tmp/ccvFhXFF.s:51     .text.Motor_Init:0000000000000000 Motor_Init
+     /tmp/ccvFhXFF.s:251    .text.Motor_Init:00000000000000ec $d
+     /tmp/ccvFhXFF.s:263    .text.Motor_UpdateSpeed:0000000000000000 $t
+     /tmp/ccvFhXFF.s:270    .text.Motor_UpdateSpeed:0000000000000000 Motor_UpdateSpeed
+     /tmp/ccvFhXFF.s:301    .text.Motor_SetPWM:0000000000000000 $t
+     /tmp/ccvFhXFF.s:308    .text.Motor_SetPWM:0000000000000000 Motor_SetPWM
+
+UNDEFINED SYMBOLS
+HAL_TIM_PWM_Start
+HAL_TIM_Encoder_Start
+htim8
+htim3
+htim2
+htim5
+htim4
+HAL_GPIO_WritePin

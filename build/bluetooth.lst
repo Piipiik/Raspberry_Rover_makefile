@@ -1,0 +1,862 @@
+ARM GAS  /tmp/cc3twxa2.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"bluetooth.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.Bluetooth_Init,"ax",%progbits
+  16              		.align	1
+  17              		.global	Bluetooth_Init
+  18              		.arch armv7-m
+  19              		.syntax unified
+  20              		.thumb
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	Bluetooth_Init:
+  25              	.LFB68:
+  26              		.file 1 "Hardware/Bluetooth/bluetooth.c"
+   1:Hardware/Bluetooth/bluetooth.c **** #include "bluetooth.h"
+   2:Hardware/Bluetooth/bluetooth.c **** #include <string.h> // 用于 memcpy
+   3:Hardware/Bluetooth/bluetooth.c **** #include <stdio.h>  // 用于 sprintf
+   4:Hardware/Bluetooth/bluetooth.c **** #include <main.h> 
+   5:Hardware/Bluetooth/bluetooth.c **** #include "usart.h" // 必须包含，以便获取 huart1 定义
+   6:Hardware/Bluetooth/bluetooth.c **** 
+   7:Hardware/Bluetooth/bluetooth.c **** // ================= 用户配置区 (User Configuration) =================
+   8:Hardware/Bluetooth/bluetooth.c **** 
+   9:Hardware/Bluetooth/bluetooth.c **** // 1. 硬件接口配置
+  10:Hardware/Bluetooth/bluetooth.c **** // 如果以后改用串口2，只需要把这里改成 &huart2
+  11:Hardware/Bluetooth/bluetooth.c **** #define BT_UART_HANDLE    &huart2
+  12:Hardware/Bluetooth/bluetooth.c **** 
+  13:Hardware/Bluetooth/bluetooth.c **** // 2. 接收数据配置 (提到前面了！)
+  14:Hardware/Bluetooth/bluetooth.c **** // 对应你 App 设置的 "数据数量" (float 是 4 字节)
+  15:Hardware/Bluetooth/bluetooth.c **** // 如果你以后想一次收 2 个 float，就把这里改成 8
+  16:Hardware/Bluetooth/bluetooth.c **** #define RX_PAYLOAD_LEN    12       
+  17:Hardware/Bluetooth/bluetooth.c **** 
+  18:Hardware/Bluetooth/bluetooth.c **** uint32_t Last_Bluetooth_Time = 0; // 用于断连保护
+  19:Hardware/Bluetooth/bluetooth.c **** 
+  20:Hardware/Bluetooth/bluetooth.c **** // =================================================================
+  21:Hardware/Bluetooth/bluetooth.c **** 
+  22:Hardware/Bluetooth/bluetooth.c **** // --- 私有变量 ---
+  23:Hardware/Bluetooth/bluetooth.c **** static uint8_t rx_buffer;                 // 1字节接收缓存
+  24:Hardware/Bluetooth/bluetooth.c **** static uint8_t rx_state = 0;              // 状态机
+  25:Hardware/Bluetooth/bluetooth.c **** uint8_t rx_data_cnt = 0;           // 计数器
+  26:Hardware/Bluetooth/bluetooth.c **** static uint8_t rx_payload[RX_PAYLOAD_LEN];// 数据载荷数组 (长度由 .h 宏定义决定)
+  27:Hardware/Bluetooth/bluetooth.c **** 
+  28:Hardware/Bluetooth/bluetooth.c **** // 联合体：Float <-> Byte 互转
+  29:Hardware/Bluetooth/bluetooth.c **** typedef union {
+  30:Hardware/Bluetooth/bluetooth.c ****     float f_data;
+  31:Hardware/Bluetooth/bluetooth.c ****     uint8_t b_data[4];
+  32:Hardware/Bluetooth/bluetooth.c **** } FloatByteUnion;
+ARM GAS  /tmp/cc3twxa2.s 			page 2
+
+
+  33:Hardware/Bluetooth/bluetooth.c **** 
+  34:Hardware/Bluetooth/bluetooth.c **** /**
+  35:Hardware/Bluetooth/bluetooth.c ****   * @brief  初始化蓝牙
+  36:Hardware/Bluetooth/bluetooth.c ****   */
+  37:Hardware/Bluetooth/bluetooth.c **** void Bluetooth_Init(void)
+  38:Hardware/Bluetooth/bluetooth.c **** {
+  27              		.loc 1 38 1 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31 0000 08B5     		push	{r3, lr}
+  32              	.LCFI0:
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 3, -8
+  35              		.cfi_offset 14, -4
+  39:Hardware/Bluetooth/bluetooth.c ****     // 开启中断接收 1 个字节
+  40:Hardware/Bluetooth/bluetooth.c ****     HAL_UART_Receive_IT(BT_UART_HANDLE, &rx_buffer, 1);
+  36              		.loc 1 40 5 view .LVU1
+  37 0002 0122     		movs	r2, #1
+  38 0004 0249     		ldr	r1, .L3
+  39 0006 0348     		ldr	r0, .L3+4
+  40 0008 FFF7FEFF 		bl	HAL_UART_Receive_IT
+  41              	.LVL0:
+  41:Hardware/Bluetooth/bluetooth.c **** }
+  42              		.loc 1 41 1 is_stmt 0 view .LVU2
+  43 000c 08BD     		pop	{r3, pc}
+  44              	.L4:
+  45 000e 00BF     		.align	2
+  46              	.L3:
+  47 0010 00000000 		.word	.LANCHOR0
+  48 0014 00000000 		.word	huart2
+  49              		.cfi_endproc
+  50              	.LFE68:
+  52              		.section	.text.Bluetooth_SendFloat,"ax",%progbits
+  53              		.align	1
+  54              		.global	Bluetooth_SendFloat
+  55              		.syntax unified
+  56              		.thumb
+  57              		.thumb_func
+  58              		.fpu softvfp
+  60              	Bluetooth_SendFloat:
+  61              	.LVL1:
+  62              	.LFB69:
+  42:Hardware/Bluetooth/bluetooth.c **** 
+  43:Hardware/Bluetooth/bluetooth.c **** /**
+  44:Hardware/Bluetooth/bluetooth.c ****   * @brief  发送一个 float 数据到手机 App
+  45:Hardware/Bluetooth/bluetooth.c ****   * @note   协议格式：0xA5(头) + data(4byte) + checksum + 0x5A(尾)
+  46:Hardware/Bluetooth/bluetooth.c ****   */
+  47:Hardware/Bluetooth/bluetooth.c **** void Bluetooth_SendFloat(float data)
+  48:Hardware/Bluetooth/bluetooth.c **** {
+  63              		.loc 1 48 1 is_stmt 1 view -0
+  64              		.cfi_startproc
+  65              		@ args = 0, pretend = 0, frame = 16
+  66              		@ frame_needed = 0, uses_anonymous_args = 0
+  67              		.loc 1 48 1 is_stmt 0 view .LVU4
+  68 0000 00B5     		push	{lr}
+  69              	.LCFI1:
+ARM GAS  /tmp/cc3twxa2.s 			page 3
+
+
+  70              		.cfi_def_cfa_offset 4
+  71              		.cfi_offset 14, -4
+  72 0002 85B0     		sub	sp, sp, #20
+  73              	.LCFI2:
+  74              		.cfi_def_cfa_offset 24
+  49:Hardware/Bluetooth/bluetooth.c ****     uint8_t tx_buf[7]; // 总长度 = 1(头) + 4(数据) + 1(校验) + 1(尾)
+  75              		.loc 1 49 5 is_stmt 1 view .LVU5
+  50:Hardware/Bluetooth/bluetooth.c ****     uint8_t i;
+  76              		.loc 1 50 5 view .LVU6
+  51:Hardware/Bluetooth/bluetooth.c ****     uint8_t check_sum = 0;
+  77              		.loc 1 51 5 view .LVU7
+  78              	.LVL2:
+  52:Hardware/Bluetooth/bluetooth.c ****     FloatByteUnion send_union;
+  79              		.loc 1 52 5 view .LVU8
+  53:Hardware/Bluetooth/bluetooth.c **** 
+  54:Hardware/Bluetooth/bluetooth.c ****     send_union.f_data = data;
+  80              		.loc 1 54 5 view .LVU9
+  81              		.loc 1 54 23 is_stmt 0 view .LVU10
+  82 0004 0190     		str	r0, [sp, #4]	@ float
+  55:Hardware/Bluetooth/bluetooth.c **** 
+  56:Hardware/Bluetooth/bluetooth.c ****     // 1. 填充包头
+  57:Hardware/Bluetooth/bluetooth.c ****     tx_buf[0] = 0xA5;
+  83              		.loc 1 57 5 is_stmt 1 view .LVU11
+  84              		.loc 1 57 15 is_stmt 0 view .LVU12
+  85 0006 A523     		movs	r3, #165
+  86 0008 8DF80830 		strb	r3, [sp, #8]
+  58:Hardware/Bluetooth/bluetooth.c **** 
+  59:Hardware/Bluetooth/bluetooth.c ****     // 2. 填充数据 & 计算校验和
+  60:Hardware/Bluetooth/bluetooth.c ****     for(i = 0; i < 4; i++)
+  87              		.loc 1 60 5 is_stmt 1 view .LVU13
+  88              	.LVL3:
+  51:Hardware/Bluetooth/bluetooth.c ****     FloatByteUnion send_union;
+  89              		.loc 1 51 13 is_stmt 0 view .LVU14
+  90 000c 0022     		movs	r2, #0
+  91              		.loc 1 60 11 view .LVU15
+  92 000e 1346     		mov	r3, r2
+  93              		.loc 1 60 5 view .LVU16
+  94 0010 0CE0     		b	.L6
+  95              	.LVL4:
+  96              	.L7:
+  61:Hardware/Bluetooth/bluetooth.c ****     {
+  62:Hardware/Bluetooth/bluetooth.c ****         tx_buf[1 + i] = send_union.b_data[i];
+  97              		.loc 1 62 9 is_stmt 1 discriminator 3 view .LVU17
+  98              		.loc 1 62 18 is_stmt 0 discriminator 3 view .LVU18
+  99 0012 591C     		adds	r1, r3, #1
+ 100              		.loc 1 62 42 discriminator 3 view .LVU19
+ 101 0014 1033     		adds	r3, r3, #16
+ 102              	.LVL5:
+ 103              		.loc 1 62 42 discriminator 3 view .LVU20
+ 104 0016 6B44     		add	r3, sp, r3
+ 105 0018 13F80C3C 		ldrb	r3, [r3, #-12]	@ zero_extendqisi2
+ 106              		.loc 1 62 23 discriminator 3 view .LVU21
+ 107 001c 01F11000 		add	r0, r1, #16
+ 108 0020 6844     		add	r0, sp, r0
+ 109 0022 00F8083C 		strb	r3, [r0, #-8]
+  63:Hardware/Bluetooth/bluetooth.c ****         check_sum += send_union.b_data[i];
+ 110              		.loc 1 63 9 is_stmt 1 discriminator 3 view .LVU22
+ARM GAS  /tmp/cc3twxa2.s 			page 4
+
+
+ 111              		.loc 1 63 19 is_stmt 0 discriminator 3 view .LVU23
+ 112 0026 1A44     		add	r2, r2, r3
+ 113              	.LVL6:
+ 114              		.loc 1 63 19 discriminator 3 view .LVU24
+ 115 0028 D2B2     		uxtb	r2, r2
+ 116              	.LVL7:
+  60:Hardware/Bluetooth/bluetooth.c ****     {
+ 117              		.loc 1 60 23 is_stmt 1 discriminator 3 view .LVU25
+  60:Hardware/Bluetooth/bluetooth.c ****     {
+ 118              		.loc 1 60 24 is_stmt 0 discriminator 3 view .LVU26
+ 119 002a CBB2     		uxtb	r3, r1
+ 120              	.LVL8:
+ 121              	.L6:
+  60:Hardware/Bluetooth/bluetooth.c ****     {
+ 122              		.loc 1 60 16 is_stmt 1 discriminator 1 view .LVU27
+  60:Hardware/Bluetooth/bluetooth.c ****     {
+ 123              		.loc 1 60 5 is_stmt 0 discriminator 1 view .LVU28
+ 124 002c 032B     		cmp	r3, #3
+ 125 002e F0D9     		bls	.L7
+  64:Hardware/Bluetooth/bluetooth.c ****     }
+  65:Hardware/Bluetooth/bluetooth.c **** 
+  66:Hardware/Bluetooth/bluetooth.c ****     // 3. 填充校验位 (根据你的App协议，校验和是数据的低8位)
+  67:Hardware/Bluetooth/bluetooth.c ****     tx_buf[5] = check_sum;
+ 126              		.loc 1 67 5 is_stmt 1 view .LVU29
+ 127              		.loc 1 67 15 is_stmt 0 view .LVU30
+ 128 0030 8DF80D20 		strb	r2, [sp, #13]
+  68:Hardware/Bluetooth/bluetooth.c **** 
+  69:Hardware/Bluetooth/bluetooth.c ****     // 4. 填充包尾
+  70:Hardware/Bluetooth/bluetooth.c ****     tx_buf[6] = 0x5A;
+ 129              		.loc 1 70 5 is_stmt 1 view .LVU31
+ 130              		.loc 1 70 15 is_stmt 0 view .LVU32
+ 131 0034 5A23     		movs	r3, #90
+ 132              	.LVL9:
+ 133              		.loc 1 70 15 view .LVU33
+ 134 0036 8DF80E30 		strb	r3, [sp, #14]
+  71:Hardware/Bluetooth/bluetooth.c **** 
+  72:Hardware/Bluetooth/bluetooth.c ****     // 5. 发送
+  73:Hardware/Bluetooth/bluetooth.c ****     HAL_UART_Transmit(BT_UART_HANDLE, tx_buf, 7, 10);
+ 135              		.loc 1 73 5 is_stmt 1 view .LVU34
+ 136 003a 0A23     		movs	r3, #10
+ 137 003c 0722     		movs	r2, #7
+ 138              	.LVL10:
+ 139              		.loc 1 73 5 is_stmt 0 view .LVU35
+ 140 003e 02A9     		add	r1, sp, #8
+ 141 0040 0248     		ldr	r0, .L9
+ 142 0042 FFF7FEFF 		bl	HAL_UART_Transmit
+ 143              	.LVL11:
+  74:Hardware/Bluetooth/bluetooth.c **** }
+ 144              		.loc 1 74 1 view .LVU36
+ 145 0046 05B0     		add	sp, sp, #20
+ 146              	.LCFI3:
+ 147              		.cfi_def_cfa_offset 4
+ 148              		@ sp needed
+ 149 0048 5DF804FB 		ldr	pc, [sp], #4
+ 150              	.L10:
+ 151              		.align	2
+ 152              	.L9:
+ARM GAS  /tmp/cc3twxa2.s 			page 5
+
+
+ 153 004c 00000000 		.word	huart2
+ 154              		.cfi_endproc
+ 155              	.LFE69:
+ 157              		.section	.text.Bluetooth_SendString,"ax",%progbits
+ 158              		.align	1
+ 159              		.global	Bluetooth_SendString
+ 160              		.syntax unified
+ 161              		.thumb
+ 162              		.thumb_func
+ 163              		.fpu softvfp
+ 165              	Bluetooth_SendString:
+ 166              	.LVL12:
+ 167              	.LFB70:
+  75:Hardware/Bluetooth/bluetooth.c **** 
+  76:Hardware/Bluetooth/bluetooth.c **** /**
+  77:Hardware/Bluetooth/bluetooth.c ****   * @brief  发送字符串 (用于调试打印)
+  78:Hardware/Bluetooth/bluetooth.c ****   */
+  79:Hardware/Bluetooth/bluetooth.c **** void Bluetooth_SendString(char *str)
+  80:Hardware/Bluetooth/bluetooth.c **** {
+ 168              		.loc 1 80 1 is_stmt 1 view -0
+ 169              		.cfi_startproc
+ 170              		@ args = 0, pretend = 0, frame = 0
+ 171              		@ frame_needed = 0, uses_anonymous_args = 0
+ 172              		.loc 1 80 1 is_stmt 0 view .LVU38
+ 173 0000 10B5     		push	{r4, lr}
+ 174              	.LCFI4:
+ 175              		.cfi_def_cfa_offset 8
+ 176              		.cfi_offset 4, -8
+ 177              		.cfi_offset 14, -4
+ 178 0002 0446     		mov	r4, r0
+  81:Hardware/Bluetooth/bluetooth.c ****     HAL_UART_Transmit(BT_UART_HANDLE, (uint8_t *)str, strlen(str), 50);
+ 179              		.loc 1 81 5 is_stmt 1 view .LVU39
+ 180              		.loc 1 81 55 is_stmt 0 view .LVU40
+ 181 0004 FFF7FEFF 		bl	strlen
+ 182              	.LVL13:
+ 183              		.loc 1 81 5 view .LVU41
+ 184 0008 3223     		movs	r3, #50
+ 185 000a 82B2     		uxth	r2, r0
+ 186 000c 2146     		mov	r1, r4
+ 187 000e 0248     		ldr	r0, .L13
+ 188 0010 FFF7FEFF 		bl	HAL_UART_Transmit
+ 189              	.LVL14:
+  82:Hardware/Bluetooth/bluetooth.c **** }
+ 190              		.loc 1 82 1 view .LVU42
+ 191 0014 10BD     		pop	{r4, pc}
+ 192              	.LVL15:
+ 193              	.L14:
+ 194              		.loc 1 82 1 view .LVU43
+ 195 0016 00BF     		.align	2
+ 196              	.L13:
+ 197 0018 00000000 		.word	huart2
+ 198              		.cfi_endproc
+ 199              	.LFE70:
+ 201              		.section	.text.Check_Bluetooth_Alive,"ax",%progbits
+ 202              		.align	1
+ 203              		.global	Check_Bluetooth_Alive
+ 204              		.syntax unified
+ARM GAS  /tmp/cc3twxa2.s 			page 6
+
+
+ 205              		.thumb
+ 206              		.thumb_func
+ 207              		.fpu softvfp
+ 209              	Check_Bluetooth_Alive:
+ 210              	.LFB71:
+  83:Hardware/Bluetooth/bluetooth.c **** 
+  84:Hardware/Bluetooth/bluetooth.c **** 
+  85:Hardware/Bluetooth/bluetooth.c **** /**
+  86:Hardware/Bluetooth/bluetooth.c ****   * @brief  蓝牙断连保护 (建议放在 main.c 的 while(1) 中调用)
+  87:Hardware/Bluetooth/bluetooth.c ****   */
+  88:Hardware/Bluetooth/bluetooth.c **** void Check_Bluetooth_Alive(void)
+  89:Hardware/Bluetooth/bluetooth.c **** {
+ 211              		.loc 1 89 1 is_stmt 1 view -0
+ 212              		.cfi_startproc
+ 213              		@ args = 0, pretend = 0, frame = 0
+ 214              		@ frame_needed = 0, uses_anonymous_args = 0
+ 215 0000 08B5     		push	{r3, lr}
+ 216              	.LCFI5:
+ 217              		.cfi_def_cfa_offset 8
+ 218              		.cfi_offset 3, -8
+ 219              		.cfi_offset 14, -4
+  90:Hardware/Bluetooth/bluetooth.c ****     // 如果超过 500ms 没收到有效的蓝牙包，视为断连，强制停车
+  91:Hardware/Bluetooth/bluetooth.c ****     if (HAL_GetTick() - Last_Bluetooth_Time > 500)
+ 220              		.loc 1 91 5 view .LVU45
+ 221              		.loc 1 91 9 is_stmt 0 view .LVU46
+ 222 0002 FFF7FEFF 		bl	HAL_GetTick
+ 223              	.LVL16:
+ 224              		.loc 1 91 23 view .LVU47
+ 225 0006 074B     		ldr	r3, .L18
+ 226 0008 1B68     		ldr	r3, [r3]
+ 227 000a C01A     		subs	r0, r0, r3
+ 228              		.loc 1 91 8 view .LVU48
+ 229 000c B0F5FA7F 		cmp	r0, #500
+ 230 0010 06D9     		bls	.L15
+  92:Hardware/Bluetooth/bluetooth.c ****     {
+  93:Hardware/Bluetooth/bluetooth.c ****         target_vx = 0.0f;
+ 231              		.loc 1 93 9 is_stmt 1 view .LVU49
+ 232              		.loc 1 93 19 is_stmt 0 view .LVU50
+ 233 0012 0023     		movs	r3, #0
+ 234 0014 044A     		ldr	r2, .L18+4
+ 235 0016 1360     		str	r3, [r2]	@ float
+  94:Hardware/Bluetooth/bluetooth.c ****         target_vy = 0.0f;
+ 236              		.loc 1 94 9 is_stmt 1 view .LVU51
+ 237              		.loc 1 94 19 is_stmt 0 view .LVU52
+ 238 0018 044A     		ldr	r2, .L18+8
+ 239 001a 1360     		str	r3, [r2]	@ float
+  95:Hardware/Bluetooth/bluetooth.c ****         target_wz = 0.0f;
+ 240              		.loc 1 95 9 is_stmt 1 view .LVU53
+ 241              		.loc 1 95 19 is_stmt 0 view .LVU54
+ 242 001c 044A     		ldr	r2, .L18+12
+ 243 001e 1360     		str	r3, [r2]	@ float
+ 244              	.L15:
+  96:Hardware/Bluetooth/bluetooth.c ****     }
+  97:Hardware/Bluetooth/bluetooth.c **** }
+ 245              		.loc 1 97 1 view .LVU55
+ 246 0020 08BD     		pop	{r3, pc}
+ 247              	.L19:
+ARM GAS  /tmp/cc3twxa2.s 			page 7
+
+
+ 248 0022 00BF     		.align	2
+ 249              	.L18:
+ 250 0024 00000000 		.word	.LANCHOR1
+ 251 0028 00000000 		.word	target_vx
+ 252 002c 00000000 		.word	target_vy
+ 253 0030 00000000 		.word	target_wz
+ 254              		.cfi_endproc
+ 255              	.LFE71:
+ 257              		.global	__aeabi_fcmpgt
+ 258              		.global	__aeabi_fcmplt
+ 259              		.section	.text.HAL_UART_RxCpltCallback,"ax",%progbits
+ 260              		.align	1
+ 261              		.global	HAL_UART_RxCpltCallback
+ 262              		.syntax unified
+ 263              		.thumb
+ 264              		.thumb_func
+ 265              		.fpu softvfp
+ 267              	HAL_UART_RxCpltCallback:
+ 268              	.LVL17:
+ 269              	.LFB72:
+  98:Hardware/Bluetooth/bluetooth.c **** 
+  99:Hardware/Bluetooth/bluetooth.c **** /**
+ 100:Hardware/Bluetooth/bluetooth.c ****   * @brief  串口接收中断回调函数 (状态机解析)
+ 101:Hardware/Bluetooth/bluetooth.c ****   */
+ 102:Hardware/Bluetooth/bluetooth.c **** void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+ 103:Hardware/Bluetooth/bluetooth.c **** {
+ 270              		.loc 1 103 1 is_stmt 1 view -0
+ 271              		.cfi_startproc
+ 272              		@ args = 0, pretend = 0, frame = 0
+ 273              		@ frame_needed = 0, uses_anonymous_args = 0
+ 104:Hardware/Bluetooth/bluetooth.c ****     if (huart == BT_UART_HANDLE)
+ 274              		.loc 1 104 5 view .LVU57
+ 275              		.loc 1 104 8 is_stmt 0 view .LVU58
+ 276 0000 414B     		ldr	r3, .L53
+ 277 0002 8342     		cmp	r3, r0
+ 278 0004 00D0     		beq	.L50
+ 279 0006 7047     		bx	lr
+ 280              	.L50:
+ 103:Hardware/Bluetooth/bluetooth.c ****     if (huart == BT_UART_HANDLE)
+ 281              		.loc 1 103 1 view .LVU59
+ 282 0008 70B5     		push	{r4, r5, r6, lr}
+ 283              	.LCFI6:
+ 284              		.cfi_def_cfa_offset 16
+ 285              		.cfi_offset 4, -16
+ 286              		.cfi_offset 5, -12
+ 287              		.cfi_offset 6, -8
+ 288              		.cfi_offset 14, -4
+ 289              	.LBB2:
+ 105:Hardware/Bluetooth/bluetooth.c ****     {
+ 106:Hardware/Bluetooth/bluetooth.c ****         static uint8_t check_sum = 0;
+ 290              		.loc 1 106 9 is_stmt 1 view .LVU60
+ 107:Hardware/Bluetooth/bluetooth.c **** 
+ 108:Hardware/Bluetooth/bluetooth.c ****         switch (rx_state)
+ 291              		.loc 1 108 9 view .LVU61
+ 292 000a 404B     		ldr	r3, .L53+4
+ 293 000c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 294 000e 032B     		cmp	r3, #3
+ARM GAS  /tmp/cc3twxa2.s 			page 8
+
+
+ 295 0010 75D8     		bhi	.L22
+ 296 0012 DFE803F0 		tbb	[pc, r3]
+ 297              	.L24:
+ 298 0016 02       		.byte	(.L27-.L24)/2
+ 299 0017 0F       		.byte	(.L26-.L24)/2
+ 300 0018 23       		.byte	(.L25-.L24)/2
+ 301 0019 31       		.byte	(.L23-.L24)/2
+ 302              		.p2align 1
+ 303              	.L27:
+ 109:Hardware/Bluetooth/bluetooth.c ****         {
+ 110:Hardware/Bluetooth/bluetooth.c ****             case 0: // 等待包头 0xA5
+ 111:Hardware/Bluetooth/bluetooth.c ****                 if (rx_buffer == 0xA5)
+ 304              		.loc 1 111 17 view .LVU62
+ 305              		.loc 1 111 31 is_stmt 0 view .LVU63
+ 306 001a 3D4B     		ldr	r3, .L53+8
+ 307 001c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 308              		.loc 1 111 20 view .LVU64
+ 309 001e A52B     		cmp	r3, #165
+ 310 0020 31D1     		bne	.L28
+ 112:Hardware/Bluetooth/bluetooth.c ****                 {
+ 113:Hardware/Bluetooth/bluetooth.c ****                     rx_state = 1;
+ 311              		.loc 1 113 21 is_stmt 1 view .LVU65
+ 312              		.loc 1 113 30 is_stmt 0 view .LVU66
+ 313 0022 3A4B     		ldr	r3, .L53+4
+ 314 0024 0122     		movs	r2, #1
+ 315 0026 1A70     		strb	r2, [r3]
+ 114:Hardware/Bluetooth/bluetooth.c ****                     check_sum = 0;
+ 316              		.loc 1 114 21 is_stmt 1 view .LVU67
+ 317              		.loc 1 114 31 is_stmt 0 view .LVU68
+ 318 0028 0023     		movs	r3, #0
+ 319 002a 3A4A     		ldr	r2, .L53+12
+ 320 002c 1370     		strb	r3, [r2]
+ 115:Hardware/Bluetooth/bluetooth.c ****                     rx_data_cnt = 0;
+ 321              		.loc 1 115 21 is_stmt 1 view .LVU69
+ 322              		.loc 1 115 33 is_stmt 0 view .LVU70
+ 323 002e 3A4A     		ldr	r2, .L53+16
+ 324 0030 1370     		strb	r3, [r2]
+ 325 0032 28E0     		b	.L28
+ 326              	.L26:
+ 116:Hardware/Bluetooth/bluetooth.c ****                 }
+ 117:Hardware/Bluetooth/bluetooth.c ****                 break;
+ 118:Hardware/Bluetooth/bluetooth.c **** 
+ 119:Hardware/Bluetooth/bluetooth.c ****             case 1: // 接收数据 (速度和转向)
+ 120:Hardware/Bluetooth/bluetooth.c ****                 rx_payload[rx_data_cnt] = rx_buffer;
+ 327              		.loc 1 120 17 is_stmt 1 view .LVU71
+ 328              		.loc 1 120 27 is_stmt 0 view .LVU72
+ 329 0034 3849     		ldr	r1, .L53+16
+ 330 0036 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 331              		.loc 1 120 41 view .LVU73
+ 332 0038 354A     		ldr	r2, .L53+8
+ 333 003a 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 334 003c 3748     		ldr	r0, .L53+20
+ 335              	.LVL18:
+ 336              		.loc 1 120 41 view .LVU74
+ 337 003e C254     		strb	r2, [r0, r3]
+ 121:Hardware/Bluetooth/bluetooth.c ****                 check_sum += rx_buffer; // 累加校验和
+ 338              		.loc 1 121 17 is_stmt 1 view .LVU75
+ARM GAS  /tmp/cc3twxa2.s 			page 9
+
+
+ 339              		.loc 1 121 27 is_stmt 0 view .LVU76
+ 340 0040 3448     		ldr	r0, .L53+12
+ 341 0042 90F800C0 		ldrb	ip, [r0]	@ zero_extendqisi2
+ 342 0046 6244     		add	r2, r2, ip
+ 343 0048 0270     		strb	r2, [r0]
+ 122:Hardware/Bluetooth/bluetooth.c ****                 rx_data_cnt++;
+ 344              		.loc 1 122 17 is_stmt 1 view .LVU77
+ 345              		.loc 1 122 28 is_stmt 0 view .LVU78
+ 346 004a 0133     		adds	r3, r3, #1
+ 347 004c DBB2     		uxtb	r3, r3
+ 348 004e 0B70     		strb	r3, [r1]
+ 123:Hardware/Bluetooth/bluetooth.c ****                 
+ 124:Hardware/Bluetooth/bluetooth.c ****                 if (rx_data_cnt >= RX_PAYLOAD_LEN)
+ 349              		.loc 1 124 17 is_stmt 1 view .LVU79
+ 350              		.loc 1 124 20 is_stmt 0 view .LVU80
+ 351 0050 0B2B     		cmp	r3, #11
+ 352 0052 18D9     		bls	.L28
+ 125:Hardware/Bluetooth/bluetooth.c ****                 {
+ 126:Hardware/Bluetooth/bluetooth.c ****                     rx_state = 2; // 数据收完，进入校验阶段
+ 353              		.loc 1 126 21 is_stmt 1 view .LVU81
+ 354              		.loc 1 126 30 is_stmt 0 view .LVU82
+ 355 0054 2D4B     		ldr	r3, .L53+4
+ 356 0056 0222     		movs	r2, #2
+ 357 0058 1A70     		strb	r2, [r3]
+ 358 005a 14E0     		b	.L28
+ 359              	.LVL19:
+ 360              	.L25:
+ 127:Hardware/Bluetooth/bluetooth.c ****                 }
+ 128:Hardware/Bluetooth/bluetooth.c ****                 break;
+ 129:Hardware/Bluetooth/bluetooth.c **** 
+ 130:Hardware/Bluetooth/bluetooth.c ****             case 2: // 校验位比对 (对比低8位)
+ 131:Hardware/Bluetooth/bluetooth.c ****                 if (rx_buffer == (check_sum & 0xFF))
+ 361              		.loc 1 131 17 is_stmt 1 view .LVU83
+ 362              		.loc 1 131 31 is_stmt 0 view .LVU84
+ 363 005c 2C4B     		ldr	r3, .L53+8
+ 364 005e 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 365 0060 2C4B     		ldr	r3, .L53+12
+ 366 0062 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 367              		.loc 1 131 20 view .LVU85
+ 368 0064 9A42     		cmp	r2, r3
+ 369 0066 03D0     		beq	.L51
+ 132:Hardware/Bluetooth/bluetooth.c ****                 {
+ 133:Hardware/Bluetooth/bluetooth.c ****                     rx_state = 3;
+ 134:Hardware/Bluetooth/bluetooth.c ****                 }
+ 135:Hardware/Bluetooth/bluetooth.c ****                 else 
+ 136:Hardware/Bluetooth/bluetooth.c ****                 {
+ 137:Hardware/Bluetooth/bluetooth.c ****                     rx_state = 0; // 校验失败，丢弃该包
+ 370              		.loc 1 137 21 is_stmt 1 view .LVU86
+ 371              		.loc 1 137 30 is_stmt 0 view .LVU87
+ 372 0068 284B     		ldr	r3, .L53+4
+ 373 006a 0022     		movs	r2, #0
+ 374 006c 1A70     		strb	r2, [r3]
+ 375 006e 0AE0     		b	.L28
+ 376              	.L51:
+ 133:Hardware/Bluetooth/bluetooth.c ****                 }
+ 377              		.loc 1 133 21 is_stmt 1 view .LVU88
+ 133:Hardware/Bluetooth/bluetooth.c ****                 }
+ARM GAS  /tmp/cc3twxa2.s 			page 10
+
+
+ 378              		.loc 1 133 30 is_stmt 0 view .LVU89
+ 379 0070 264B     		ldr	r3, .L53+4
+ 380 0072 0322     		movs	r2, #3
+ 381 0074 1A70     		strb	r2, [r3]
+ 382 0076 06E0     		b	.L28
+ 383              	.L23:
+ 138:Hardware/Bluetooth/bluetooth.c ****                 }
+ 139:Hardware/Bluetooth/bluetooth.c ****                 break;
+ 140:Hardware/Bluetooth/bluetooth.c **** 
+ 141:Hardware/Bluetooth/bluetooth.c ****             case 3: // 等待包尾 0x5A
+ 142:Hardware/Bluetooth/bluetooth.c ****                 if (rx_buffer == 0x5A)
+ 384              		.loc 1 142 17 is_stmt 1 view .LVU90
+ 385              		.loc 1 142 31 is_stmt 0 view .LVU91
+ 386 0078 254B     		ldr	r3, .L53+8
+ 387 007a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 388              		.loc 1 142 20 view .LVU92
+ 389 007c 5A2B     		cmp	r3, #90
+ 390 007e 08D0     		beq	.L52
+ 391              	.LVL20:
+ 392              	.L30:
+ 143:Hardware/Bluetooth/bluetooth.c ****                 {
+ 144:Hardware/Bluetooth/bluetooth.c ****                     // === 成功接收完整数据包 ===
+ 145:Hardware/Bluetooth/bluetooth.c ****                     // 强转为有符号整数 (int8_t 范围是 -128 到 127)
+ 146:Hardware/Bluetooth/bluetooth.c ****                     FloatByteUnion vx_union, vy_union, wz_union;
+ 147:Hardware/Bluetooth/bluetooth.c ****                     memcpy(vx_union.b_data, &rx_payload[0], 4);
+ 148:Hardware/Bluetooth/bluetooth.c ****                     memcpy(vy_union.b_data, &rx_payload[4], 4);
+ 149:Hardware/Bluetooth/bluetooth.c ****                     memcpy(wz_union.b_data, &rx_payload[8], 4);
+ 150:Hardware/Bluetooth/bluetooth.c ****                     target_vx = vx_union.f_data;
+ 151:Hardware/Bluetooth/bluetooth.c ****                     target_vy = vy_union.f_data;
+ 152:Hardware/Bluetooth/bluetooth.c ****                     target_wz = wz_union.f_data;
+ 153:Hardware/Bluetooth/bluetooth.c **** 
+ 154:Hardware/Bluetooth/bluetooth.c ****                     // 摇杆死区消除：防止手机 App 摇杆回中时带有微小残余值 (
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ 156:Hardware/Bluetooth/bluetooth.c ****                     if(target_vy > -5 && target_vy < 5) target_vy = 0;
+ 157:Hardware/Bluetooth/bluetooth.c ****                     if(target_wz > -5 && target_wz < 5) target_wz = 0;
+ 158:Hardware/Bluetooth/bluetooth.c **** 
+ 159:Hardware/Bluetooth/bluetooth.c ****                     // 更新最后一次收到数据的时间
+ 160:Hardware/Bluetooth/bluetooth.c ****                     Last_Bluetooth_Time = HAL_GetTick(); 
+ 161:Hardware/Bluetooth/bluetooth.c ****                 }
+ 162:Hardware/Bluetooth/bluetooth.c ****                 rx_state = 0; // 回到初始状态，等待下一个包
+ 393              		.loc 1 162 17 is_stmt 1 view .LVU93
+ 394              		.loc 1 162 26 is_stmt 0 view .LVU94
+ 395 0080 224B     		ldr	r3, .L53+4
+ 396 0082 0022     		movs	r2, #0
+ 397 0084 1A70     		strb	r2, [r3]
+ 163:Hardware/Bluetooth/bluetooth.c ****                 break;
+ 398              		.loc 1 163 17 is_stmt 1 view .LVU95
+ 399              	.L28:
+ 164:Hardware/Bluetooth/bluetooth.c ****                 
+ 165:Hardware/Bluetooth/bluetooth.c ****             default:
+ 166:Hardware/Bluetooth/bluetooth.c ****                 rx_state = 0;
+ 167:Hardware/Bluetooth/bluetooth.c ****                 break;
+ 168:Hardware/Bluetooth/bluetooth.c ****         }
+ 169:Hardware/Bluetooth/bluetooth.c **** 
+ 170:Hardware/Bluetooth/bluetooth.c ****         // 重新开启中断接收下一个字节
+ 171:Hardware/Bluetooth/bluetooth.c ****         HAL_UART_Receive_IT(BT_UART_HANDLE, &rx_buffer, 1);
+ 400              		.loc 1 171 9 view .LVU96
+ARM GAS  /tmp/cc3twxa2.s 			page 11
+
+
+ 401 0086 0122     		movs	r2, #1
+ 402 0088 2149     		ldr	r1, .L53+8
+ 403 008a 1F48     		ldr	r0, .L53
+ 404 008c FFF7FEFF 		bl	HAL_UART_Receive_IT
+ 405              	.LVL21:
+ 406              	.LBE2:
+ 172:Hardware/Bluetooth/bluetooth.c ****     }
+ 173:Hardware/Bluetooth/bluetooth.c **** }...
+ 407              		.loc 1 173 1 is_stmt 0 view .LVU97
+ 408 0090 70BD     		pop	{r4, r5, r6, pc}
+ 409              	.LVL22:
+ 410              	.L52:
+ 411              	.LBB4:
+ 412              	.LBB3:
+ 146:Hardware/Bluetooth/bluetooth.c ****                     FloatByteUnion vx_union, vy_union, wz_union;
+ 413              		.loc 1 146 21 is_stmt 1 view .LVU98
+ 147:Hardware/Bluetooth/bluetooth.c ****                     memcpy(vx_union.b_data, &rx_payload[0], 4);
+ 414              		.loc 1 147 21 view .LVU99
+ 415 0092 224B     		ldr	r3, .L53+20
+ 148:Hardware/Bluetooth/bluetooth.c ****                     memcpy(vy_union.b_data, &rx_payload[4], 4);
+ 416              		.loc 1 148 21 view .LVU100
+ 149:Hardware/Bluetooth/bluetooth.c ****                     memcpy(wz_union.b_data, &rx_payload[8], 4);
+ 417              		.loc 1 149 21 view .LVU101
+ 150:Hardware/Bluetooth/bluetooth.c ****                     target_vx = vx_union.f_data;
+ 418              		.loc 1 150 21 view .LVU102
+ 419 0094 1E68     		ldr	r6, [r3]	@ float
+ 150:Hardware/Bluetooth/bluetooth.c ****                     target_vx = vx_union.f_data;
+ 420              		.loc 1 150 31 is_stmt 0 view .LVU103
+ 421 0096 224A     		ldr	r2, .L53+24
+ 422 0098 1660     		str	r6, [r2]	@ float
+ 151:Hardware/Bluetooth/bluetooth.c ****                     target_vy = vy_union.f_data;
+ 423              		.loc 1 151 21 is_stmt 1 view .LVU104
+ 424 009a 5D68     		ldr	r5, [r3, #4]	@ float
+ 151:Hardware/Bluetooth/bluetooth.c ****                     target_vy = vy_union.f_data;
+ 425              		.loc 1 151 31 is_stmt 0 view .LVU105
+ 426 009c 214A     		ldr	r2, .L53+28
+ 427 009e 1560     		str	r5, [r2]	@ float
+ 152:Hardware/Bluetooth/bluetooth.c ****                     target_wz = wz_union.f_data;
+ 428              		.loc 1 152 21 is_stmt 1 view .LVU106
+ 429 00a0 9C68     		ldr	r4, [r3, #8]	@ float
+ 152:Hardware/Bluetooth/bluetooth.c ****                     target_wz = wz_union.f_data;
+ 430              		.loc 1 152 31 is_stmt 0 view .LVU107
+ 431 00a2 214B     		ldr	r3, .L53+32
+ 432 00a4 1C60     		str	r4, [r3]	@ float
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ 433              		.loc 1 155 21 is_stmt 1 view .LVU108
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ 434              		.loc 1 155 23 is_stmt 0 view .LVU109
+ 435 00a6 2149     		ldr	r1, .L53+36
+ 436 00a8 3046     		mov	r0, r6
+ 437              	.LVL23:
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ 438              		.loc 1 155 23 view .LVU110
+ 439 00aa FFF7FEFF 		bl	__aeabi_fcmpgt
+ 440              	.LVL24:
+ 441 00ae 38B1     		cbz	r0, .L31
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ARM GAS  /tmp/cc3twxa2.s 			page 12
+
+
+ 442              		.loc 1 155 39 discriminator 1 view .LVU111
+ 443 00b0 1F49     		ldr	r1, .L53+40
+ 444 00b2 3046     		mov	r0, r6
+ 445 00b4 FFF7FEFF 		bl	__aeabi_fcmplt
+ 446              	.LVL25:
+ 447 00b8 10B1     		cbz	r0, .L31
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ 448              		.loc 1 155 57 is_stmt 1 discriminator 2 view .LVU112
+ 155:Hardware/Bluetooth/bluetooth.c ****                     if(target_vx > -5 && target_vx < 5) target_vx = 0;
+ 449              		.loc 1 155 67 is_stmt 0 discriminator 2 view .LVU113
+ 450 00ba 194B     		ldr	r3, .L53+24
+ 451 00bc 0022     		movs	r2, #0
+ 452 00be 1A60     		str	r2, [r3]	@ float
+ 453              	.L31:
+ 156:Hardware/Bluetooth/bluetooth.c ****                     if(target_vy > -5 && target_vy < 5) target_vy = 0;
+ 454              		.loc 1 156 21 is_stmt 1 view .LVU114
+ 156:Hardware/Bluetooth/bluetooth.c ****                     if(target_vy > -5 && target_vy < 5) target_vy = 0;
+ 455              		.loc 1 156 23 is_stmt 0 view .LVU115
+ 456 00c0 1A49     		ldr	r1, .L53+36
+ 457 00c2 2846     		mov	r0, r5
+ 458 00c4 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 459              	.LVL26:
+ 460 00c8 38B1     		cbz	r0, .L34
+ 156:Hardware/Bluetooth/bluetooth.c ****                     if(target_vy > -5 && target_vy < 5) target_vy = 0;
+ 461              		.loc 1 156 39 discriminator 1 view .LVU116
+ 462 00ca 1949     		ldr	r1, .L53+40
+ 463 00cc 2846     		mov	r0, r5
+ 464 00ce FFF7FEFF 		bl	__aeabi_fcmplt
+ 465              	.LVL27:
+ 466 00d2 10B1     		cbz	r0, .L34
+ 156:Hardware/Bluetooth/bluetooth.c ****                     if(target_vy > -5 && target_vy < 5) target_vy = 0;
+ 467              		.loc 1 156 57 is_stmt 1 discriminator 2 view .LVU117
+ 156:Hardware/Bluetooth/bluetooth.c ****                     if(target_vy > -5 && target_vy < 5) target_vy = 0;
+ 468              		.loc 1 156 67 is_stmt 0 discriminator 2 view .LVU118
+ 469 00d4 134B     		ldr	r3, .L53+28
+ 470 00d6 0022     		movs	r2, #0
+ 471 00d8 1A60     		str	r2, [r3]	@ float
+ 472              	.L34:
+ 157:Hardware/Bluetooth/bluetooth.c ****                     if(target_wz > -5 && target_wz < 5) target_wz = 0;
+ 473              		.loc 1 157 21 is_stmt 1 view .LVU119
+ 157:Hardware/Bluetooth/bluetooth.c ****                     if(target_wz > -5 && target_wz < 5) target_wz = 0;
+ 474              		.loc 1 157 23 is_stmt 0 view .LVU120
+ 475 00da 1449     		ldr	r1, .L53+36
+ 476 00dc 2046     		mov	r0, r4
+ 477 00de FFF7FEFF 		bl	__aeabi_fcmpgt
+ 478              	.LVL28:
+ 479 00e2 38B1     		cbz	r0, .L37
+ 157:Hardware/Bluetooth/bluetooth.c ****                     if(target_wz > -5 && target_wz < 5) target_wz = 0;
+ 480              		.loc 1 157 39 discriminator 1 view .LVU121
+ 481 00e4 1249     		ldr	r1, .L53+40
+ 482 00e6 2046     		mov	r0, r4
+ 483 00e8 FFF7FEFF 		bl	__aeabi_fcmplt
+ 484              	.LVL29:
+ 485 00ec 10B1     		cbz	r0, .L37
+ 157:Hardware/Bluetooth/bluetooth.c ****                     if(target_wz > -5 && target_wz < 5) target_wz = 0;
+ 486              		.loc 1 157 57 is_stmt 1 discriminator 2 view .LVU122
+ 157:Hardware/Bluetooth/bluetooth.c ****                     if(target_wz > -5 && target_wz < 5) target_wz = 0;
+ARM GAS  /tmp/cc3twxa2.s 			page 13
+
+
+ 487              		.loc 1 157 67 is_stmt 0 discriminator 2 view .LVU123
+ 488 00ee 0E4B     		ldr	r3, .L53+32
+ 489 00f0 0022     		movs	r2, #0
+ 490 00f2 1A60     		str	r2, [r3]	@ float
+ 491              	.L37:
+ 160:Hardware/Bluetooth/bluetooth.c ****                     Last_Bluetooth_Time = HAL_GetTick(); 
+ 492              		.loc 1 160 21 is_stmt 1 view .LVU124
+ 160:Hardware/Bluetooth/bluetooth.c ****                     Last_Bluetooth_Time = HAL_GetTick(); 
+ 493              		.loc 1 160 43 is_stmt 0 view .LVU125
+ 494 00f4 FFF7FEFF 		bl	HAL_GetTick
+ 495              	.LVL30:
+ 160:Hardware/Bluetooth/bluetooth.c ****                     Last_Bluetooth_Time = HAL_GetTick(); 
+ 496              		.loc 1 160 41 view .LVU126
+ 497 00f8 0E4B     		ldr	r3, .L53+44
+ 498 00fa 1860     		str	r0, [r3]
+ 499 00fc C0E7     		b	.L30
+ 500              	.LVL31:
+ 501              	.L22:
+ 160:Hardware/Bluetooth/bluetooth.c ****                     Last_Bluetooth_Time = HAL_GetTick(); 
+ 502              		.loc 1 160 41 view .LVU127
+ 503              	.LBE3:
+ 166:Hardware/Bluetooth/bluetooth.c ****                 rx_state = 0;
+ 504              		.loc 1 166 17 is_stmt 1 view .LVU128
+ 166:Hardware/Bluetooth/bluetooth.c ****                 rx_state = 0;
+ 505              		.loc 1 166 26 is_stmt 0 view .LVU129
+ 506 00fe 034B     		ldr	r3, .L53+4
+ 507 0100 0022     		movs	r2, #0
+ 508 0102 1A70     		strb	r2, [r3]
+ 167:Hardware/Bluetooth/bluetooth.c ****                 break;
+ 509              		.loc 1 167 17 is_stmt 1 view .LVU130
+ 510 0104 BFE7     		b	.L28
+ 511              	.L54:
+ 512 0106 00BF     		.align	2
+ 513              	.L53:
+ 514 0108 00000000 		.word	huart2
+ 515 010c 00000000 		.word	.LANCHOR2
+ 516 0110 00000000 		.word	.LANCHOR0
+ 517 0114 00000000 		.word	.LANCHOR3
+ 518 0118 00000000 		.word	.LANCHOR4
+ 519 011c 00000000 		.word	.LANCHOR5
+ 520 0120 00000000 		.word	target_vx
+ 521 0124 00000000 		.word	target_vy
+ 522 0128 00000000 		.word	target_wz
+ 523 012c 0000A0C0 		.word	-1063256064
+ 524 0130 0000A040 		.word	1084227584
+ 525 0134 00000000 		.word	.LANCHOR1
+ 526              	.LBE4:
+ 527              		.cfi_endproc
+ 528              	.LFE72:
+ 530              		.global	rx_data_cnt
+ 531              		.global	Last_Bluetooth_Time
+ 532              		.section	.bss.Last_Bluetooth_Time,"aw",%nobits
+ 533              		.align	2
+ 534              		.set	.LANCHOR1,. + 0
+ 537              	Last_Bluetooth_Time:
+ 538 0000 00000000 		.space	4
+ 539              		.section	.bss.check_sum.0,"aw",%nobits
+ARM GAS  /tmp/cc3twxa2.s 			page 14
+
+
+ 540              		.set	.LANCHOR3,. + 0
+ 543              	check_sum.0:
+ 544 0000 00       		.space	1
+ 545              		.section	.bss.rx_buffer,"aw",%nobits
+ 546              		.set	.LANCHOR0,. + 0
+ 549              	rx_buffer:
+ 550 0000 00       		.space	1
+ 551              		.section	.bss.rx_data_cnt,"aw",%nobits
+ 552              		.set	.LANCHOR4,. + 0
+ 555              	rx_data_cnt:
+ 556 0000 00       		.space	1
+ 557              		.section	.bss.rx_payload,"aw",%nobits
+ 558              		.align	2
+ 559              		.set	.LANCHOR5,. + 0
+ 562              	rx_payload:
+ 563 0000 00000000 		.space	12
+ 563      00000000 
+ 563      00000000 
+ 564              		.section	.bss.rx_state,"aw",%nobits
+ 565              		.set	.LANCHOR2,. + 0
+ 568              	rx_state:
+ 569 0000 00       		.space	1
+ 570              		.text
+ 571              	.Letext0:
+ 572              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 573              		.file 3 "Hardware/Bluetooth/bluetooth.h"
+ 574              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+ 575              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 576              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h"
+ 577              		.file 7 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h"
+ 578              		.file 8 "Core/Inc/usart.h"
+ 579              		.file 9 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h"
+ 580              		.file 10 "/usr/include/newlib/string.h"
+ARM GAS  /tmp/cc3twxa2.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 bluetooth.c
+     /tmp/cc3twxa2.s:16     .text.Bluetooth_Init:0000000000000000 $t
+     /tmp/cc3twxa2.s:24     .text.Bluetooth_Init:0000000000000000 Bluetooth_Init
+     /tmp/cc3twxa2.s:47     .text.Bluetooth_Init:0000000000000010 $d
+     /tmp/cc3twxa2.s:53     .text.Bluetooth_SendFloat:0000000000000000 $t
+     /tmp/cc3twxa2.s:60     .text.Bluetooth_SendFloat:0000000000000000 Bluetooth_SendFloat
+     /tmp/cc3twxa2.s:153    .text.Bluetooth_SendFloat:000000000000004c $d
+     /tmp/cc3twxa2.s:158    .text.Bluetooth_SendString:0000000000000000 $t
+     /tmp/cc3twxa2.s:165    .text.Bluetooth_SendString:0000000000000000 Bluetooth_SendString
+     /tmp/cc3twxa2.s:197    .text.Bluetooth_SendString:0000000000000018 $d
+     /tmp/cc3twxa2.s:202    .text.Check_Bluetooth_Alive:0000000000000000 $t
+     /tmp/cc3twxa2.s:209    .text.Check_Bluetooth_Alive:0000000000000000 Check_Bluetooth_Alive
+     /tmp/cc3twxa2.s:250    .text.Check_Bluetooth_Alive:0000000000000024 $d
+     /tmp/cc3twxa2.s:260    .text.HAL_UART_RxCpltCallback:0000000000000000 $t
+     /tmp/cc3twxa2.s:267    .text.HAL_UART_RxCpltCallback:0000000000000000 HAL_UART_RxCpltCallback
+     /tmp/cc3twxa2.s:298    .text.HAL_UART_RxCpltCallback:0000000000000016 $d
+     /tmp/cc3twxa2.s:302    .text.HAL_UART_RxCpltCallback:000000000000001a $t
+     /tmp/cc3twxa2.s:514    .text.HAL_UART_RxCpltCallback:0000000000000108 $d
+     /tmp/cc3twxa2.s:555    .bss.rx_data_cnt:0000000000000000 rx_data_cnt
+     /tmp/cc3twxa2.s:537    .bss.Last_Bluetooth_Time:0000000000000000 Last_Bluetooth_Time
+     /tmp/cc3twxa2.s:533    .bss.Last_Bluetooth_Time:0000000000000000 $d
+     /tmp/cc3twxa2.s:543    .bss.check_sum.0:0000000000000000 check_sum.0
+     /tmp/cc3twxa2.s:544    .bss.check_sum.0:0000000000000000 $d
+     /tmp/cc3twxa2.s:549    .bss.rx_buffer:0000000000000000 rx_buffer
+     /tmp/cc3twxa2.s:550    .bss.rx_buffer:0000000000000000 $d
+     /tmp/cc3twxa2.s:556    .bss.rx_data_cnt:0000000000000000 $d
+     /tmp/cc3twxa2.s:558    .bss.rx_payload:0000000000000000 $d
+     /tmp/cc3twxa2.s:562    .bss.rx_payload:0000000000000000 rx_payload
+     /tmp/cc3twxa2.s:568    .bss.rx_state:0000000000000000 rx_state
+     /tmp/cc3twxa2.s:569    .bss.rx_state:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+HAL_UART_Receive_IT
+huart2
+HAL_UART_Transmit
+strlen
+HAL_GetTick
+target_vx
+target_vy
+target_wz
+__aeabi_fcmpgt
+__aeabi_fcmplt

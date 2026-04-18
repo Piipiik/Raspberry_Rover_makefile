@@ -1,0 +1,375 @@
+ARM GAS  /tmp/ccURN4oM.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"app_motion.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.global	__aeabi_f2iz
+  16              		.section	.text.MotorControlTask,"ax",%progbits
+  17              		.align	1
+  18              		.global	MotorControlTask
+  19              		.arch armv7-m
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu softvfp
+  25              	MotorControlTask:
+  26              	.LVL0:
+  27              	.LFB69:
+  28              		.file 1 "App/Motion/app_motion.c"
+   1:App/Motion/app_motion.c **** /* App/Motion/app_motion.c */
+   2:App/Motion/app_motion.c **** #include "app_motion.h"
+   3:App/Motion/app_motion.c **** #include "app.h" // 包含总头文件，为了能访问 target_vx 等全局变量
+   4:App/Motion/app_motion.c **** #include "kinematics.h"
+   5:App/Motion/app_motion.c **** #include "motor.h"
+   6:App/Motion/app_motion.c **** #include "pid.h"
+   7:App/Motion/app_motion.c **** 
+   8:App/Motion/app_motion.c **** Kinematics_t myKin;
+   9:App/Motion/app_motion.c **** PID_t pid[MOTOR_COUNT] = {0};
+  10:App/Motion/app_motion.c **** Motor_t Motor[MOTOR_COUNT] = {0}; // 电机数组，索引对应各个电机
+  11:App/Motion/app_motion.c **** float target_wheel_speed[MOTOR_COUNT] = {0}; // 目标轮速数组，索引对应各个电机
+  12:App/Motion/app_motion.c **** float target_vx = 0.1f, target_vy = 0.0f, target_wz = 0.0f;
+  13:App/Motion/app_motion.c **** float current_vx = 0.0f, current_vy = 0.0f, current_wz = 0.0f;
+  14:App/Motion/app_motion.c **** float pwm_output[MOTOR_COUNT] = {0.0f};
+  15:App/Motion/app_motion.c **** 
+  16:App/Motion/app_motion.c **** 
+  17:App/Motion/app_motion.c **** void MotorControlTask(void *argument)
+  18:App/Motion/app_motion.c **** {
+  29              		.loc 1 18 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 18 1 is_stmt 0 view .LVU1
+  34 0000 30B5     		push	{r4, r5, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 12
+  37              		.cfi_offset 4, -12
+  38              		.cfi_offset 5, -8
+  39              		.cfi_offset 14, -4
+  40 0002 83B0     		sub	sp, sp, #12
+ARM GAS  /tmp/ccURN4oM.s 			page 2
+
+
+  41              	.LCFI1:
+  42              		.cfi_def_cfa_offset 24
+  19:App/Motion/app_motion.c ****   /* 这里直接粘贴你原来 freertos.c 里 MotorControlTask 的所有代码 */
+  20:App/Motion/app_motion.c ****   
+  21:App/Motion/app_motion.c ****   Kinematics_Init(&myKin);
+  43              		.loc 1 21 3 is_stmt 1 view .LVU2
+  44 0004 2348     		ldr	r0, .L6
+  45              	.LVL1:
+  46              		.loc 1 21 3 is_stmt 0 view .LVU3
+  47 0006 FFF7FEFF 		bl	Kinematics_Init
+  48              	.LVL2:
+  22:App/Motion/app_motion.c ****   Motor_Init(Motor); // 注意：这里的 Motor 数组也是 extern 的，确保在 app.h 里声�
+  49              		.loc 1 22 3 is_stmt 1 view .LVU4
+  50 000a 2348     		ldr	r0, .L6+4
+  51 000c FFF7FEFF 		bl	Motor_Init
+  52              	.LVL3:
+  23:App/Motion/app_motion.c ****   PID_Init(pid);
+  53              		.loc 1 23 3 view .LVU5
+  54 0010 2248     		ldr	r0, .L6+8
+  55 0012 FFF7FEFF 		bl	PID_Init
+  56              	.LVL4:
+  24:App/Motion/app_motion.c **** 
+  25:App/Motion/app_motion.c ****   uint32_t tick = osKernelGetTickCount();
+  57              		.loc 1 25 3 view .LVU6
+  58              		.loc 1 25 19 is_stmt 0 view .LVU7
+  59 0016 FFF7FEFF 		bl	osKernelGetTickCount
+  60              	.LVL5:
+  61 001a 0546     		mov	r5, r0
+  62              	.LVL6:
+  63              		.loc 1 25 19 view .LVU8
+  64 001c 21E0     		b	.L4
+  65              	.LVL7:
+  66              	.L3:
+  67              	.LBB2:
+  26:App/Motion/app_motion.c **** 
+  27:App/Motion/app_motion.c ****   for(;;)
+  28:App/Motion/app_motion.c ****   {
+  29:App/Motion/app_motion.c ****     tick = tick + 10;
+  30:App/Motion/app_motion.c **** 
+  31:App/Motion/app_motion.c ****     /* --- 以下是你原来的代码，原样保留 --- */
+  32:App/Motion/app_motion.c ****     
+  33:App/Motion/app_motion.c ****     Kinematics_UpdateMotorSpeed(&myKin, Motor);
+  34:App/Motion/app_motion.c ****     Kinematics_Forward(&myKin, &current_vx, &current_vy, &current_wz);
+  35:App/Motion/app_motion.c ****     Kinematics_Inverse(&myKin, target_vx, target_vy, target_wz, target_wheel_speed);
+  36:App/Motion/app_motion.c **** 
+  37:App/Motion/app_motion.c ****     for(int i = 0; i < MOTOR_COUNT; i++) {
+  38:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+  68              		.loc 1 38 9 is_stmt 1 discriminator 3 view .LVU9
+  69              		.loc 1 38 25 is_stmt 0 discriminator 3 view .LVU10
+  70 001e 04EB4402 		add	r2, r4, r4, lsl #1
+  71 0022 1C4B     		ldr	r3, .L6
+  72 0024 03EB8203 		add	r3, r3, r2, lsl #2
+  73 0028 1046     		mov	r0, r2
+  74 002a 5A69     		ldr	r2, [r3, #20]	@ float
+  75 002c 1C4B     		ldr	r3, .L6+12
+  76 002e 53F82410 		ldr	r1, [r3, r4, lsl #2]	@ float
+  77 0032 1A4B     		ldr	r3, .L6+8
+ARM GAS  /tmp/ccURN4oM.s 			page 3
+
+
+  78 0034 03EB8000 		add	r0, r3, r0, lsl #2
+  79 0038 FFF7FEFF 		bl	Velocity_Ring
+  80              	.LVL8:
+  81              		.loc 1 38 23 discriminator 3 view .LVU11
+  82 003c 194B     		ldr	r3, .L6+16
+  83 003e 43F82400 		str	r0, [r3, r4, lsl #2]	@ float
+  39:App/Motion/app_motion.c ****         Motor_SetPWM(&Motor[i], pwm_output[i]);
+  84              		.loc 1 39 9 is_stmt 1 discriminator 3 view .LVU12
+  85 0042 FFF7FEFF 		bl	__aeabi_f2iz
+  86              	.LVL9:
+  87 0046 0146     		mov	r1, r0
+  88 0048 04EBC402 		add	r2, r4, r4, lsl #3
+  89 004c 1248     		ldr	r0, .L6+4
+  90 004e 00EB8200 		add	r0, r0, r2, lsl #2
+  91 0052 FFF7FEFF 		bl	Motor_SetPWM
+  92              	.LVL10:
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+  93              		.loc 1 37 37 discriminator 3 view .LVU13
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+  94              		.loc 1 37 38 is_stmt 0 discriminator 3 view .LVU14
+  95 0056 0134     		adds	r4, r4, #1
+  96              	.LVL11:
+  97              	.L2:
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+  98              		.loc 1 37 20 is_stmt 1 discriminator 1 view .LVU15
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+  99              		.loc 1 37 5 is_stmt 0 discriminator 1 view .LVU16
+ 100 0058 032C     		cmp	r4, #3
+ 101 005a E0DD     		ble	.L3
+ 102              	.LBE2:
+  40:App/Motion/app_motion.c ****     }
+  41:App/Motion/app_motion.c ****     osDelayUntil(tick);
+ 103              		.loc 1 41 5 is_stmt 1 view .LVU17
+ 104 005c 2846     		mov	r0, r5
+ 105 005e FFF7FEFF 		bl	osDelayUntil
+ 106              	.LVL12:
+  27:App/Motion/app_motion.c ****   {
+ 107              		.loc 1 27 8 view .LVU18
+ 108              	.L4:
+  27:App/Motion/app_motion.c ****   {
+ 109              		.loc 1 27 3 view .LVU19
+  29:App/Motion/app_motion.c **** 
+ 110              		.loc 1 29 5 view .LVU20
+  29:App/Motion/app_motion.c **** 
+ 111              		.loc 1 29 10 is_stmt 0 view .LVU21
+ 112 0062 0A35     		adds	r5, r5, #10
+ 113              	.LVL13:
+  33:App/Motion/app_motion.c ****     Kinematics_Forward(&myKin, &current_vx, &current_vy, &current_wz);
+ 114              		.loc 1 33 5 is_stmt 1 view .LVU22
+ 115 0064 0B4C     		ldr	r4, .L6
+ 116 0066 0C49     		ldr	r1, .L6+4
+ 117 0068 2046     		mov	r0, r4
+ 118 006a FFF7FEFF 		bl	Kinematics_UpdateMotorSpeed
+ 119              	.LVL14:
+  34:App/Motion/app_motion.c ****     Kinematics_Inverse(&myKin, target_vx, target_vy, target_wz, target_wheel_speed);
+ 120              		.loc 1 34 5 view .LVU23
+ 121 006e 0E4B     		ldr	r3, .L6+20
+ARM GAS  /tmp/ccURN4oM.s 			page 4
+
+
+ 122 0070 0E4A     		ldr	r2, .L6+24
+ 123 0072 0F49     		ldr	r1, .L6+28
+ 124 0074 2046     		mov	r0, r4
+ 125 0076 FFF7FEFF 		bl	Kinematics_Forward
+ 126              	.LVL15:
+  35:App/Motion/app_motion.c **** 
+ 127              		.loc 1 35 5 view .LVU24
+ 128 007a 094B     		ldr	r3, .L6+12
+ 129 007c 0093     		str	r3, [sp]
+ 130 007e 0D4B     		ldr	r3, .L6+32
+ 131 0080 1B68     		ldr	r3, [r3]	@ float
+ 132 0082 0D4A     		ldr	r2, .L6+36
+ 133 0084 1268     		ldr	r2, [r2]	@ float
+ 134 0086 0D49     		ldr	r1, .L6+40
+ 135 0088 0968     		ldr	r1, [r1]	@ float
+ 136 008a 2046     		mov	r0, r4
+ 137 008c FFF7FEFF 		bl	Kinematics_Inverse
+ 138              	.LVL16:
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+ 139              		.loc 1 37 5 view .LVU25
+ 140              	.LBB3:
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+ 141              		.loc 1 37 9 view .LVU26
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+ 142              		.loc 1 37 13 is_stmt 0 view .LVU27
+ 143 0090 0024     		movs	r4, #0
+  37:App/Motion/app_motion.c ****         pwm_output[i] = Velocity_Ring(&pid[i], target_wheel_speed[i], myKin.motor[i].current_speed)
+ 144              		.loc 1 37 5 view .LVU28
+ 145 0092 E1E7     		b	.L2
+ 146              	.L7:
+ 147              		.align	2
+ 148              	.L6:
+ 149 0094 00000000 		.word	.LANCHOR0
+ 150 0098 00000000 		.word	.LANCHOR1
+ 151 009c 00000000 		.word	.LANCHOR2
+ 152 00a0 00000000 		.word	.LANCHOR9
+ 153 00a4 00000000 		.word	.LANCHOR10
+ 154 00a8 00000000 		.word	.LANCHOR3
+ 155 00ac 00000000 		.word	.LANCHOR4
+ 156 00b0 00000000 		.word	.LANCHOR5
+ 157 00b4 00000000 		.word	.LANCHOR6
+ 158 00b8 00000000 		.word	.LANCHOR7
+ 159 00bc 00000000 		.word	.LANCHOR8
+ 160              	.LBE3:
+ 161              		.cfi_endproc
+ 162              	.LFE69:
+ 164              		.global	pwm_output
+ 165              		.global	current_wz
+ 166              		.global	current_vy
+ 167              		.global	current_vx
+ 168              		.global	target_wz
+ 169              		.global	target_vy
+ 170              		.global	target_vx
+ 171              		.global	target_wheel_speed
+ 172              		.global	Motor
+ 173              		.global	pid
+ 174              		.global	myKin
+ARM GAS  /tmp/ccURN4oM.s 			page 5
+
+
+ 175              		.section	.bss.Motor,"aw",%nobits
+ 176              		.align	2
+ 177              		.set	.LANCHOR1,. + 0
+ 180              	Motor:
+ 181 0000 00000000 		.space	144
+ 181      00000000 
+ 181      00000000 
+ 181      00000000 
+ 181      00000000 
+ 182              		.section	.bss.current_vx,"aw",%nobits
+ 183              		.align	2
+ 184              		.set	.LANCHOR5,. + 0
+ 187              	current_vx:
+ 188 0000 00000000 		.space	4
+ 189              		.section	.bss.current_vy,"aw",%nobits
+ 190              		.align	2
+ 191              		.set	.LANCHOR4,. + 0
+ 194              	current_vy:
+ 195 0000 00000000 		.space	4
+ 196              		.section	.bss.current_wz,"aw",%nobits
+ 197              		.align	2
+ 198              		.set	.LANCHOR3,. + 0
+ 201              	current_wz:
+ 202 0000 00000000 		.space	4
+ 203              		.section	.bss.myKin,"aw",%nobits
+ 204              		.align	2
+ 205              		.set	.LANCHOR0,. + 0
+ 208              	myKin:
+ 209 0000 00000000 		.space	60
+ 209      00000000 
+ 209      00000000 
+ 209      00000000 
+ 209      00000000 
+ 210              		.section	.bss.pid,"aw",%nobits
+ 211              		.align	2
+ 212              		.set	.LANCHOR2,. + 0
+ 215              	pid:
+ 216 0000 00000000 		.space	48
+ 216      00000000 
+ 216      00000000 
+ 216      00000000 
+ 216      00000000 
+ 217              		.section	.bss.pwm_output,"aw",%nobits
+ 218              		.align	2
+ 219              		.set	.LANCHOR10,. + 0
+ 222              	pwm_output:
+ 223 0000 00000000 		.space	16
+ 223      00000000 
+ 223      00000000 
+ 223      00000000 
+ 224              		.section	.bss.target_vy,"aw",%nobits
+ 225              		.align	2
+ 226              		.set	.LANCHOR7,. + 0
+ 229              	target_vy:
+ 230 0000 00000000 		.space	4
+ 231              		.section	.bss.target_wheel_speed,"aw",%nobits
+ 232              		.align	2
+ARM GAS  /tmp/ccURN4oM.s 			page 6
+
+
+ 233              		.set	.LANCHOR9,. + 0
+ 236              	target_wheel_speed:
+ 237 0000 00000000 		.space	16
+ 237      00000000 
+ 237      00000000 
+ 237      00000000 
+ 238              		.section	.bss.target_wz,"aw",%nobits
+ 239              		.align	2
+ 240              		.set	.LANCHOR6,. + 0
+ 243              	target_wz:
+ 244 0000 00000000 		.space	4
+ 245              		.section	.data.target_vx,"aw"
+ 246              		.align	2
+ 247              		.set	.LANCHOR8,. + 0
+ 250              	target_vx:
+ 251 0000 CDCCCC3D 		.word	1036831949
+ 252              		.text
+ 253              	.Letext0:
+ 254              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 255              		.file 3 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+ 256              		.file 4 "Core/Inc/global.h"
+ 257              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 258              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h"
+ 259              		.file 7 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h"
+ 260              		.file 8 "Hardware/Motor/motor.h"
+ 261              		.file 9 "Control/kinematics/kinematics.h"
+ 262              		.file 10 "Control/PID/pid.h"
+ 263              		.file 11 "App/app.h"
+ 264              		.file 12 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ARM GAS  /tmp/ccURN4oM.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 app_motion.c
+     /tmp/ccURN4oM.s:17     .text.MotorControlTask:0000000000000000 $t
+     /tmp/ccURN4oM.s:25     .text.MotorControlTask:0000000000000000 MotorControlTask
+     /tmp/ccURN4oM.s:149    .text.MotorControlTask:0000000000000094 $d
+     /tmp/ccURN4oM.s:222    .bss.pwm_output:0000000000000000 pwm_output
+     /tmp/ccURN4oM.s:201    .bss.current_wz:0000000000000000 current_wz
+     /tmp/ccURN4oM.s:194    .bss.current_vy:0000000000000000 current_vy
+     /tmp/ccURN4oM.s:187    .bss.current_vx:0000000000000000 current_vx
+     /tmp/ccURN4oM.s:243    .bss.target_wz:0000000000000000 target_wz
+     /tmp/ccURN4oM.s:229    .bss.target_vy:0000000000000000 target_vy
+     /tmp/ccURN4oM.s:250    .data.target_vx:0000000000000000 target_vx
+     /tmp/ccURN4oM.s:236    .bss.target_wheel_speed:0000000000000000 target_wheel_speed
+     /tmp/ccURN4oM.s:180    .bss.Motor:0000000000000000 Motor
+     /tmp/ccURN4oM.s:215    .bss.pid:0000000000000000 pid
+     /tmp/ccURN4oM.s:208    .bss.myKin:0000000000000000 myKin
+     /tmp/ccURN4oM.s:176    .bss.Motor:0000000000000000 $d
+     /tmp/ccURN4oM.s:183    .bss.current_vx:0000000000000000 $d
+     /tmp/ccURN4oM.s:190    .bss.current_vy:0000000000000000 $d
+     /tmp/ccURN4oM.s:197    .bss.current_wz:0000000000000000 $d
+     /tmp/ccURN4oM.s:204    .bss.myKin:0000000000000000 $d
+     /tmp/ccURN4oM.s:211    .bss.pid:0000000000000000 $d
+     /tmp/ccURN4oM.s:218    .bss.pwm_output:0000000000000000 $d
+     /tmp/ccURN4oM.s:225    .bss.target_vy:0000000000000000 $d
+     /tmp/ccURN4oM.s:232    .bss.target_wheel_speed:0000000000000000 $d
+     /tmp/ccURN4oM.s:239    .bss.target_wz:0000000000000000 $d
+     /tmp/ccURN4oM.s:246    .data.target_vx:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+__aeabi_f2iz
+Kinematics_Init
+Motor_Init
+PID_Init
+osKernelGetTickCount
+Velocity_Ring
+Motor_SetPWM
+osDelayUntil
+Kinematics_UpdateMotorSpeed
+Kinematics_Forward
+Kinematics_Inverse

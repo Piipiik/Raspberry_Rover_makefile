@@ -1,0 +1,601 @@
+ARM GAS  /tmp/ccBL55YG.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"app_interact.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.global	__aeabi_d2f
+  16              		.section	.text.cmd_vel_callback,"ax",%progbits
+  17              		.align	1
+  18              		.global	cmd_vel_callback
+  19              		.arch armv7-m
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu softvfp
+  25              	cmd_vel_callback:
+  26              	.LVL0:
+  27              	.LFB73:
+  28              		.file 1 "App/Interact/app_interact.c"
+   1:App/Interact/app_interact.c **** /* App/Sensor/app_sensor.c */
+   2:App/Interact/app_interact.c **** #include "app_interact.h"
+   3:App/Interact/app_interact.c **** #include "app.h"
+   4:App/Interact/app_interact.c **** #include "bluetooth.h"
+   5:App/Interact/app_interact.c **** #include "usart.h"
+   6:App/Interact/app_interact.c **** 
+   7:App/Interact/app_interact.c **** #include <rcl/rcl.h>
+   8:App/Interact/app_interact.c **** #include <rcl/error_handling.h>
+   9:App/Interact/app_interact.c **** #include <rclc/rclc.h>
+  10:App/Interact/app_interact.c **** #include <rclc/executor.h>
+  11:App/Interact/app_interact.c **** #include <uxr/client/transport.h>
+  12:App/Interact/app_interact.c **** #include <rmw_microxrcedds_c/config.h>
+  13:App/Interact/app_interact.c **** #include <rmw_microros/rmw_microros.h>
+  14:App/Interact/app_interact.c **** 
+  15:App/Interact/app_interact.c **** // 包含消息头文件
+  16:App/Interact/app_interact.c **** #include <std_msgs/msg/int32.h>
+  17:App/Interact/app_interact.c **** #include <geometry_msgs/msg/twist.h> // 引入Twist消息用于速度传递
+  18:App/Interact/app_interact.c **** 
+  19:App/Interact/app_interact.c **** // 声明外部变量
+  20:App/Interact/app_interact.c **** extern float target_vx, target_vy, target_wz;
+  21:App/Interact/app_interact.c **** extern float current_vx, current_vy, current_wz; // 新增：当前速度
+  22:App/Interact/app_interact.c **** 
+  23:App/Interact/app_interact.c **** // 底层传输函数声明
+  24:App/Interact/app_interact.c **** bool cubemx_transport_open(struct uxrCustomTransport * transport);
+  25:App/Interact/app_interact.c **** bool cubemx_transport_close(struct uxrCustomTransport * transport);
+  26:App/Interact/app_interact.c **** size_t cubemx_transport_write(struct uxrCustomTransport* transport, const uint8_t * buf, size_t len
+  27:App/Interact/app_interact.c **** size_t cubemx_transport_read(struct uxrCustomTransport* transport, uint8_t* buf, size_t len, int ti
+  28:App/Interact/app_interact.c **** 
+  29:App/Interact/app_interact.c **** void * microros_allocate(size_t size, void * state);
+  30:App/Interact/app_interact.c **** void microros_deallocate(void * pointer, void * state);
+ARM GAS  /tmp/ccBL55YG.s 			page 2
+
+
+  31:App/Interact/app_interact.c **** void * microros_reallocate(void * pointer, size_t size, void * state);
+  32:App/Interact/app_interact.c **** void * microros_zero_allocate(size_t number_of_elements, size_t size_of_element, void * state);
+  33:App/Interact/app_interact.c **** 
+  34:App/Interact/app_interact.c **** // --- 新增：接收目标速度的回调函数 ---
+  35:App/Interact/app_interact.c **** void cmd_vel_callback(const void * msgin)
+  36:App/Interact/app_interact.c **** {
+  29              		.loc 1 36 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 36 1 is_stmt 0 view .LVU1
+  34 0000 10B5     		push	{r4, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 8
+  37              		.cfi_offset 4, -8
+  38              		.cfi_offset 14, -4
+  39 0002 0446     		mov	r4, r0
+  37:App/Interact/app_interact.c ****     const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
+  40              		.loc 1 37 5 is_stmt 1 view .LVU2
+  41              	.LVL1:
+  38:App/Interact/app_interact.c ****     // 将接收到的ROS 2消息赋值给单片机控制变量
+  39:App/Interact/app_interact.c ****     target_vx = msg->linear.x;
+  42              		.loc 1 39 5 view .LVU3
+  43              		.loc 1 39 28 is_stmt 0 view .LVU4
+  44 0004 03C8     		ldmia	r0, {r0-r1}
+  45              	.LVL2:
+  46              		.loc 1 39 28 view .LVU5
+  47 0006 FFF7FEFF 		bl	__aeabi_d2f
+  48              	.LVL3:
+  49              		.loc 1 39 15 view .LVU6
+  50 000a 074B     		ldr	r3, .L3
+  51 000c 1860     		str	r0, [r3]	@ float
+  40:App/Interact/app_interact.c ****     target_vy = msg->linear.y;
+  52              		.loc 1 40 5 is_stmt 1 view .LVU7
+  53              		.loc 1 40 28 is_stmt 0 view .LVU8
+  54 000e D4E90201 		ldrd	r0, [r4, #8]
+  55 0012 FFF7FEFF 		bl	__aeabi_d2f
+  56              	.LVL4:
+  57              		.loc 1 40 15 view .LVU9
+  58 0016 054B     		ldr	r3, .L3+4
+  59 0018 1860     		str	r0, [r3]	@ float
+  41:App/Interact/app_interact.c ****     target_wz = msg->angular.z;
+  60              		.loc 1 41 5 is_stmt 1 view .LVU10
+  61              		.loc 1 41 29 is_stmt 0 view .LVU11
+  62 001a D4E90A01 		ldrd	r0, [r4, #40]
+  63 001e FFF7FEFF 		bl	__aeabi_d2f
+  64              	.LVL5:
+  65              		.loc 1 41 15 view .LVU12
+  66 0022 034B     		ldr	r3, .L3+8
+  67 0024 1860     		str	r0, [r3]	@ float
+  42:App/Interact/app_interact.c ****     
+  43:App/Interact/app_interact.c ****     // 如果需要调试，可以取消注释下面这行 (需配置好printf)
+  44:App/Interact/app_interact.c ****     // printf("Received cmd_vel: vx=%.2f, vy=%.2f, wz=%.2f\n", target_vx, target_vy, target_wz);
+  45:App/Interact/app_interact.c **** }
+  68              		.loc 1 45 1 view .LVU13
+  69 0026 10BD     		pop	{r4, pc}
+  70              	.LVL6:
+ARM GAS  /tmp/ccBL55YG.s 			page 3
+
+
+  71              	.L4:
+  72              		.loc 1 45 1 view .LVU14
+  73              		.align	2
+  74              	.L3:
+  75 0028 00000000 		.word	target_vx
+  76 002c 00000000 		.word	target_vy
+  77 0030 00000000 		.word	target_wz
+  78              		.cfi_endproc
+  79              	.LFE73:
+  81              		.section	.rodata.ProtocolProcessTask.str1.4,"aMS",%progbits,1
+  82              		.align	2
+  83              	.LC0:
+  84 0000 4572726F 		.ascii	"Error on default allocators (line %d)\012\000"
+  84      72206F6E 
+  84      20646566 
+  84      61756C74 
+  84      20616C6C 
+  85 0027 00       		.align	2
+  86              	.LC1:
+  87 0028 00       		.ascii	"\000"
+  88 0029 000000   		.align	2
+  89              	.LC2:
+  90 002c 73746D33 		.ascii	"stm32_chassis_node\000"
+  90      325F6368 
+  90      61737369 
+  90      735F6E6F 
+  90      646500
+  91 003f 00       		.align	2
+  92              	.LC3:
+  93 0040 63686173 		.ascii	"chassis_counter\000"
+  93      7369735F 
+  93      636F756E 
+  93      74657200 
+  94              		.align	2
+  95              	.LC4:
+  96 0050 63757272 		.ascii	"current_velocity\000"
+  96      656E745F 
+  96      76656C6F 
+  96      63697479 
+  96      00
+  97 0061 000000   		.align	2
+  98              	.LC5:
+  99 0064 636D645F 		.ascii	"cmd_vel\000"
+  99      76656C00 
+ 100              		.global	__aeabi_f2d
+ 101              		.section	.text.ProtocolProcessTask,"ax",%progbits
+ 102              		.align	1
+ 103              		.global	ProtocolProcessTask
+ 104              		.syntax unified
+ 105              		.thumb
+ 106              		.thumb_func
+ 107              		.fpu softvfp
+ 109              	ProtocolProcessTask:
+ 110              	.LVL7:
+ 111              	.LFB74:
+  46:App/Interact/app_interact.c **** 
+  47:App/Interact/app_interact.c **** void ProtocolProcessTask(void *argument)
+ARM GAS  /tmp/ccBL55YG.s 			page 4
+
+
+  48:App/Interact/app_interact.c **** {
+ 112              		.loc 1 48 1 is_stmt 1 view -0
+ 113              		.cfi_startproc
+ 114              		@ Volatile: function does not return.
+ 115              		@ args = 0, pretend = 0, frame = 352
+ 116              		@ frame_needed = 0, uses_anonymous_args = 0
+ 117              		.loc 1 48 1 is_stmt 0 view .LVU16
+ 118 0000 00B5     		push	{lr}
+ 119              	.LCFI1:
+ 120              		.cfi_def_cfa_offset 4
+ 121              		.cfi_offset 14, -4
+ 122 0002 DBB0     		sub	sp, sp, #364
+ 123              	.LCFI2:
+ 124              		.cfi_def_cfa_offset 368
+  49:App/Interact/app_interact.c ****     /* micro-ROS configuration */
+  50:App/Interact/app_interact.c ****     rmw_uros_set_custom_transport(
+ 125              		.loc 1 50 5 is_stmt 1 view .LVU17
+ 126 0004 404B     		ldr	r3, .L10+8
+ 127 0006 0193     		str	r3, [sp, #4]
+ 128 0008 404B     		ldr	r3, .L10+12
+ 129 000a 0093     		str	r3, [sp]
+ 130 000c 404B     		ldr	r3, .L10+16
+ 131 000e 414A     		ldr	r2, .L10+20
+ 132 0010 4149     		ldr	r1, .L10+24
+ 133 0012 0120     		movs	r0, #1
+ 134              	.LVL8:
+ 135              		.loc 1 50 5 is_stmt 0 view .LVU18
+ 136 0014 FFF7FEFF 		bl	rmw_uros_set_custom_transport
+ 137              	.LVL9:
+  51:App/Interact/app_interact.c ****       true,
+  52:App/Interact/app_interact.c ****       (void *) &huart2,
+  53:App/Interact/app_interact.c ****       cubemx_transport_open,
+  54:App/Interact/app_interact.c ****       cubemx_transport_close,
+  55:App/Interact/app_interact.c ****       cubemx_transport_write,
+  56:App/Interact/app_interact.c ****       cubemx_transport_read);
+  57:App/Interact/app_interact.c **** 
+  58:App/Interact/app_interact.c ****     rcl_allocator_t freeRTOS_allocator = rcutils_get_zero_initialized_allocator();
+ 138              		.loc 1 58 5 is_stmt 1 view .LVU19
+ 139              		.loc 1 58 42 is_stmt 0 view .LVU20
+ 140 0018 55A8     		add	r0, sp, #340
+ 141 001a FFF7FEFF 		bl	rcutils_get_zero_initialized_allocator
+ 142              	.LVL10:
+  59:App/Interact/app_interact.c ****     freeRTOS_allocator.allocate = microros_allocate;
+ 143              		.loc 1 59 5 is_stmt 1 view .LVU21
+ 144              		.loc 1 59 33 is_stmt 0 view .LVU22
+ 145 001e 3F4B     		ldr	r3, .L10+28
+ 146 0020 5593     		str	r3, [sp, #340]
+  60:App/Interact/app_interact.c ****     freeRTOS_allocator.deallocate = microros_deallocate;
+ 147              		.loc 1 60 5 is_stmt 1 view .LVU23
+ 148              		.loc 1 60 35 is_stmt 0 view .LVU24
+ 149 0022 3F4B     		ldr	r3, .L10+32
+ 150 0024 5693     		str	r3, [sp, #344]
+  61:App/Interact/app_interact.c ****     freeRTOS_allocator.reallocate = microros_reallocate;
+ 151              		.loc 1 61 5 is_stmt 1 view .LVU25
+ 152              		.loc 1 61 35 is_stmt 0 view .LVU26
+ 153 0026 3F4B     		ldr	r3, .L10+36
+ 154 0028 5793     		str	r3, [sp, #348]
+ARM GAS  /tmp/ccBL55YG.s 			page 5
+
+
+  62:App/Interact/app_interact.c ****     freeRTOS_allocator.zero_allocate =  microros_zero_allocate;
+ 155              		.loc 1 62 5 is_stmt 1 view .LVU27
+ 156              		.loc 1 62 38 is_stmt 0 view .LVU28
+ 157 002a 3F4B     		ldr	r3, .L10+40
+ 158 002c 5893     		str	r3, [sp, #352]
+  63:App/Interact/app_interact.c **** 
+  64:App/Interact/app_interact.c ****     if (!rcutils_set_default_allocator(&freeRTOS_allocator)) {
+ 159              		.loc 1 64 5 is_stmt 1 view .LVU29
+ 160              		.loc 1 64 10 is_stmt 0 view .LVU30
+ 161 002e 55A8     		add	r0, sp, #340
+ 162 0030 FFF7FEFF 		bl	rcutils_set_default_allocator
+ 163              	.LVL11:
+ 164              		.loc 1 64 8 view .LVU31
+ 165 0034 0028     		cmp	r0, #0
+ 166 0036 5ED0     		beq	.L9
+ 167              	.L6:
+  65:App/Interact/app_interact.c ****         printf("Error on default allocators (line %d)\n", __LINE__);
+  66:App/Interact/app_interact.c ****     }
+  67:App/Interact/app_interact.c **** 
+  68:App/Interact/app_interact.c ****     /* 声明 micro-ROS 对象 */
+  69:App/Interact/app_interact.c ****     rclc_support_t support;
+ 168              		.loc 1 69 5 is_stmt 1 view .LVU32
+  70:App/Interact/app_interact.c ****     rcl_node_t node;
+ 169              		.loc 1 70 5 view .LVU33
+  71:App/Interact/app_interact.c ****     rclc_executor_t executor; // 新增：执行器，用于处理回调
+ 170              		.loc 1 71 5 view .LVU34
+  72:App/Interact/app_interact.c ****     rcl_allocator_t allocator = rcl_get_default_allocator();
+ 171              		.loc 1 72 5 view .LVU35
+ 172              		.loc 1 72 33 is_stmt 0 view .LVU36
+ 173 0038 1FA8     		add	r0, sp, #124
+ 174 003a FFF7FEFF 		bl	rcutils_get_default_allocator
+ 175              	.LVL12:
+  73:App/Interact/app_interact.c **** 
+  74:App/Interact/app_interact.c ****     // 声明发布者和订阅者
+  75:App/Interact/app_interact.c ****     rcl_publisher_t pub_int;
+ 176              		.loc 1 75 5 is_stmt 1 view .LVU37
+  76:App/Interact/app_interact.c ****     rcl_publisher_t pub_vel;
+ 177              		.loc 1 76 5 view .LVU38
+  77:App/Interact/app_interact.c ****     rcl_subscription_t sub_cmd_vel;
+ 178              		.loc 1 77 5 view .LVU39
+  78:App/Interact/app_interact.c **** 
+  79:App/Interact/app_interact.c ****     // 声明消息体
+  80:App/Interact/app_interact.c ****     std_msgs__msg__Int32 msg_int;
+ 179              		.loc 1 80 5 view .LVU40
+  81:App/Interact/app_interact.c ****     geometry_msgs__msg__Twist msg_current_vel;
+ 180              		.loc 1 81 5 view .LVU41
+  82:App/Interact/app_interact.c ****     geometry_msgs__msg__Twist msg_target_vel; // 用于接收
+ 181              		.loc 1 82 5 view .LVU42
+  83:App/Interact/app_interact.c **** 
+  84:App/Interact/app_interact.c ****     // 1. 初始化 support 和 node
+  85:App/Interact/app_interact.c ****     rclc_support_init(&support, 0, NULL, &allocator);
+ 182              		.loc 1 85 5 view .LVU43
+ 183 003e 1FAB     		add	r3, sp, #124
+ 184 0040 0022     		movs	r2, #0
+ 185 0042 1146     		mov	r1, r2
+ 186 0044 47A8     		add	r0, sp, #284
+ 187 0046 FFF7FEFF 		bl	rclc_support_init
+ARM GAS  /tmp/ccBL55YG.s 			page 6
+
+
+ 188              	.LVL13:
+  86:App/Interact/app_interact.c ****     rclc_node_init_default(&node, "stm32_chassis_node", "", &support);
+ 189              		.loc 1 86 5 view .LVU44
+ 190 004a 47AB     		add	r3, sp, #284
+ 191 004c 374A     		ldr	r2, .L10+44
+ 192 004e 3849     		ldr	r1, .L10+48
+ 193 0050 45A8     		add	r0, sp, #276
+ 194 0052 FFF7FEFF 		bl	rclc_node_init_default
+ 195              	.LVL14:
+  87:App/Interact/app_interact.c **** 
+  88:App/Interact/app_interact.c ****     // 2. 创建 Publisher (原有的计数器)
+  89:App/Interact/app_interact.c ****     rclc_publisher_init_default(
+ 196              		.loc 1 89 5 view .LVU45
+ 197 0056 FFF7FEFF 		bl	rosidl_typesupport_c__get_message_type_support_handle__std_msgs__msg__Int32
+ 198              	.LVL15:
+ 199 005a 0246     		mov	r2, r0
+ 200 005c 354B     		ldr	r3, .L10+52
+ 201 005e 45A9     		add	r1, sp, #276
+ 202 0060 1EA8     		add	r0, sp, #120
+ 203 0062 FFF7FEFF 		bl	rclc_publisher_init_default
+ 204              	.LVL16:
+  90:App/Interact/app_interact.c ****       &pub_int,
+  91:App/Interact/app_interact.c ****       &node,
+  92:App/Interact/app_interact.c ****       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+  93:App/Interact/app_interact.c ****       "chassis_counter");
+  94:App/Interact/app_interact.c **** 
+  95:App/Interact/app_interact.c ****     // 3. 创建 Publisher (发布当前实际速度)
+  96:App/Interact/app_interact.c ****     rclc_publisher_init_default(
+ 205              		.loc 1 96 5 view .LVU46
+ 206 0066 FFF7FEFF 		bl	rosidl_typesupport_c__get_message_type_support_handle__geometry_msgs__msg__Twist
+ 207              	.LVL17:
+ 208 006a 0246     		mov	r2, r0
+ 209 006c 324B     		ldr	r3, .L10+56
+ 210 006e 45A9     		add	r1, sp, #276
+ 211 0070 1DA8     		add	r0, sp, #116
+ 212 0072 FFF7FEFF 		bl	rclc_publisher_init_default
+ 213              	.LVL18:
+  97:App/Interact/app_interact.c ****       &pub_vel,
+  98:App/Interact/app_interact.c ****       &node,
+  99:App/Interact/app_interact.c ****       ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+ 100:App/Interact/app_interact.c ****       "current_velocity");
+ 101:App/Interact/app_interact.c **** 
+ 102:App/Interact/app_interact.c ****     // 4. 创建 Subscriber (订阅 Linux 发来的目标控制速度)
+ 103:App/Interact/app_interact.c ****     rclc_subscription_init_default(
+ 214              		.loc 1 103 5 view .LVU47
+ 215 0076 FFF7FEFF 		bl	rosidl_typesupport_c__get_message_type_support_handle__geometry_msgs__msg__Twist
+ 216              	.LVL19:
+ 217 007a 0246     		mov	r2, r0
+ 218 007c 2F4B     		ldr	r3, .L10+60
+ 219 007e 45A9     		add	r1, sp, #276
+ 220 0080 1CA8     		add	r0, sp, #112
+ 221 0082 FFF7FEFF 		bl	rclc_subscription_init_default
+ 222              	.LVL20:
+ 104:App/Interact/app_interact.c ****       &sub_cmd_vel,
+ 105:App/Interact/app_interact.c ****       &node,
+ 106:App/Interact/app_interact.c ****       ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+ 107:App/Interact/app_interact.c ****       "cmd_vel");
+ARM GAS  /tmp/ccBL55YG.s 			page 7
+
+
+ 108:App/Interact/app_interact.c **** 
+ 109:App/Interact/app_interact.c ****     // 5. 初始化 Executor (参数 1 表示只有 1 个订阅者需要处理)
+ 110:App/Interact/app_interact.c ****     rclc_executor_init(&executor, &support.context, 1, &allocator);
+ 223              		.loc 1 110 5 view .LVU48
+ 224 0086 1FAB     		add	r3, sp, #124
+ 225 0088 0122     		movs	r2, #1
+ 226 008a 48A9     		add	r1, sp, #288
+ 227 008c 24A8     		add	r0, sp, #144
+ 228 008e FFF7FEFF 		bl	rclc_executor_init
+ 229              	.LVL21:
+ 111:App/Interact/app_interact.c ****     rclc_executor_add_subscription(&executor, &sub_cmd_vel, &msg_target_vel, &cmd_vel_callback, ON_
+ 230              		.loc 1 111 5 view .LVU49
+ 231 0092 0024     		movs	r4, #0
+ 232 0094 0094     		str	r4, [sp]
+ 233 0096 2A4B     		ldr	r3, .L10+64
+ 234 0098 02AA     		add	r2, sp, #8
+ 235 009a 1CA9     		add	r1, sp, #112
+ 236 009c 24A8     		add	r0, sp, #144
+ 237 009e FFF7FEFF 		bl	rclc_executor_add_subscription
+ 238              	.LVL22:
+ 112:App/Interact/app_interact.c **** 
+ 113:App/Interact/app_interact.c ****     msg_int.data = 0;
+ 239              		.loc 1 113 5 view .LVU50
+ 240              		.loc 1 113 18 is_stmt 0 view .LVU51
+ 241 00a2 1B94     		str	r4, [sp, #108]
+ 242              	.L7:
+ 114:App/Interact/app_interact.c **** 
+ 115:App/Interact/app_interact.c ****     for(;;)
+ 243              		.loc 1 115 5 is_stmt 1 discriminator 1 view .LVU52
+ 116:App/Interact/app_interact.c ****     {
+ 117:App/Interact/app_interact.c ****         // --- 发送数据 ---
+ 118:App/Interact/app_interact.c ****         
+ 119:App/Interact/app_interact.c ****         // 1. 发送计数器
+ 120:App/Interact/app_interact.c ****         rcl_publish(&pub_int, &msg_int, NULL);
+ 244              		.loc 1 120 9 discriminator 1 view .LVU53
+ 245 00a4 0022     		movs	r2, #0
+ 246 00a6 1BA9     		add	r1, sp, #108
+ 247 00a8 1EA8     		add	r0, sp, #120
+ 248 00aa FFF7FEFF 		bl	rcl_publish
+ 249              	.LVL23:
+ 121:App/Interact/app_interact.c ****         msg_int.data++;
+ 250              		.loc 1 121 9 discriminator 1 view .LVU54
+ 251              		.loc 1 121 16 is_stmt 0 discriminator 1 view .LVU55
+ 252 00ae 1B9B     		ldr	r3, [sp, #108]
+ 253              		.loc 1 121 21 discriminator 1 view .LVU56
+ 254 00b0 0133     		adds	r3, r3, #1
+ 255 00b2 1B93     		str	r3, [sp, #108]
+ 122:App/Interact/app_interact.c **** 
+ 123:App/Interact/app_interact.c ****         // 2. 发送当前速度给 Linux
+ 124:App/Interact/app_interact.c ****         // 这里把单片机底层的 current 变量装填到 ROS 2 消息结构体中
+ 125:App/Interact/app_interact.c ****         msg_current_vel.linear.x = current_vx;
+ 256              		.loc 1 125 9 is_stmt 1 discriminator 1 view .LVU57
+ 257              		.loc 1 125 34 is_stmt 0 discriminator 1 view .LVU58
+ 258 00b4 234B     		ldr	r3, .L10+68
+ 259 00b6 1868     		ldr	r0, [r3]	@ float
+ 260 00b8 FFF7FEFF 		bl	__aeabi_f2d
+ 261              	.LVL24:
+ARM GAS  /tmp/ccBL55YG.s 			page 8
+
+
+ 262 00bc CDE90E01 		strd	r0, [sp, #56]
+ 126:App/Interact/app_interact.c ****         msg_current_vel.linear.y = current_vy;
+ 263              		.loc 1 126 9 is_stmt 1 discriminator 1 view .LVU59
+ 264              		.loc 1 126 34 is_stmt 0 discriminator 1 view .LVU60
+ 265 00c0 214B     		ldr	r3, .L10+72
+ 266 00c2 1868     		ldr	r0, [r3]	@ float
+ 267 00c4 FFF7FEFF 		bl	__aeabi_f2d
+ 268              	.LVL25:
+ 269 00c8 CDE91001 		strd	r0, [sp, #64]
+ 127:App/Interact/app_interact.c ****         msg_current_vel.angular.z = current_wz;
+ 270              		.loc 1 127 9 is_stmt 1 discriminator 1 view .LVU61
+ 271              		.loc 1 127 35 is_stmt 0 discriminator 1 view .LVU62
+ 272 00cc 1F4B     		ldr	r3, .L10+76
+ 273 00ce 1868     		ldr	r0, [r3]	@ float
+ 274 00d0 FFF7FEFF 		bl	__aeabi_f2d
+ 275              	.LVL26:
+ 276 00d4 CDE91801 		strd	r0, [sp, #96]
+ 128:App/Interact/app_interact.c ****         rcl_publish(&pub_vel, &msg_current_vel, NULL);
+ 277              		.loc 1 128 9 is_stmt 1 discriminator 1 view .LVU63
+ 278 00d8 0022     		movs	r2, #0
+ 279 00da 0EA9     		add	r1, sp, #56
+ 280 00dc 1DA8     		add	r0, sp, #116
+ 281 00de FFF7FEFF 		bl	rcl_publish
+ 282              	.LVL27:
+ 129:App/Interact/app_interact.c **** 
+ 130:App/Interact/app_interact.c **** 
+ 131:App/Interact/app_interact.c ****         // --- 接收数据 ---
+ 132:App/Interact/app_interact.c ****         
+ 133:App/Interact/app_interact.c ****         // 让 executor 运行，处理订阅的收包逻辑。
+ 134:App/Interact/app_interact.c ****         // 超时时间设置为 100ms。如果有新消息，它会自动调用 cmd_vel_callback�
+ 135:App/Interact/app_interact.c ****         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+ 283              		.loc 1 135 9 discriminator 1 view .LVU64
+ 284 00e2 07A3     		adr	r3, .L10
+ 285 00e4 D3E90023 		ldrd	r2, [r3]
+ 286 00e8 24A8     		add	r0, sp, #144
+ 287 00ea FFF7FEFF 		bl	rclc_executor_spin_some
+ 288              	.LVL28:
+ 136:App/Interact/app_interact.c **** 
+ 137:App/Interact/app_interact.c ****         // osDelay(100);  // 因为 spin_some 已经有了 100ms 的阻塞等待时间，这里只�
+ 138:App/Interact/app_interact.c ****         osDelay(10); 
+ 289              		.loc 1 138 9 discriminator 1 view .LVU65
+ 290 00ee 0A20     		movs	r0, #10
+ 291 00f0 FFF7FEFF 		bl	osDelay
+ 292              	.LVL29:
+ 115:App/Interact/app_interact.c ****     {
+ 293              		.loc 1 115 10 discriminator 1 view .LVU66
+ 294 00f4 D6E7     		b	.L7
+ 295              	.L9:
+  65:App/Interact/app_interact.c ****     }
+ 296              		.loc 1 65 9 view .LVU67
+ 297 00f6 4121     		movs	r1, #65
+ 298 00f8 1548     		ldr	r0, .L10+80
+ 299 00fa FFF7FEFF 		bl	printf
+ 300              	.LVL30:
+ 301 00fe 9BE7     		b	.L6
+ 302              	.L11:
+ 303              		.align	3
+ARM GAS  /tmp/ccBL55YG.s 			page 9
+
+
+ 304              	.L10:
+ 305 0100 00E1F505 		.word	100000000
+ 306 0104 00000000 		.word	0
+ 307 0108 00000000 		.word	cubemx_transport_read
+ 308 010c 00000000 		.word	cubemx_transport_write
+ 309 0110 00000000 		.word	cubemx_transport_close
+ 310 0114 00000000 		.word	cubemx_transport_open
+ 311 0118 00000000 		.word	huart2
+ 312 011c 00000000 		.word	microros_allocate
+ 313 0120 00000000 		.word	microros_deallocate
+ 314 0124 00000000 		.word	microros_reallocate
+ 315 0128 00000000 		.word	microros_zero_allocate
+ 316 012c 28000000 		.word	.LC1
+ 317 0130 2C000000 		.word	.LC2
+ 318 0134 40000000 		.word	.LC3
+ 319 0138 50000000 		.word	.LC4
+ 320 013c 64000000 		.word	.LC5
+ 321 0140 00000000 		.word	cmd_vel_callback
+ 322 0144 00000000 		.word	current_vx
+ 323 0148 00000000 		.word	current_vy
+ 324 014c 00000000 		.word	current_wz
+ 325 0150 00000000 		.word	.LC0
+ 326              		.cfi_endproc
+ 327              	.LFE74:
+ 329              		.text
+ 330              	.Letext0:
+ 331              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stddef.h"
+ 332              		.file 3 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 333              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+ 334              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 335              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h"
+ 336              		.file 7 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h"
+ 337              		.file 8 "App/app.h"
+ 338              		.file 9 "Core/Inc/usart.h"
+ 339              		.file 10 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcutils
+ 340              		.file 11 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/all
+ 341              		.file 12 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rmw/ret
+ 342              		.file 13 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcutils
+ 343              		.file 14 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rmw/typ
+ 344              		.file 15 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/typ
+ 345              		.file 16 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/ini
+ 346              		.file 17 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/con
+ 347              		.file 18 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/nod
+ 348              		.file 19 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/pub
+ 349              		.file 20 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/sub
+ 350              		.file 21 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/cli
+ 351              		.file 22 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/gua
+ 352              		.file 23 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/ser
+ 353              		.file 24 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/tim
+ 354              		.file 25 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rmw/qos
+ 355              		.file 26 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/tim
+ 356              		.file 27 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/eve
+ 357              		.file 28 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rcl/wai
+ 358              		.file 29 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/ty
+ 359              		.file 30 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/ex
+ 360              		.file 31 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/ex
+ 361              		.file 32 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/std_msg
+ARM GAS  /tmp/ccBL55YG.s 			page 10
+
+
+ 362              		.file 33 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/geometr
+ 363              		.file 34 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/geometr
+ 364              		.file 35 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rmw_mic
+ 365              		.file 36 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/in
+ 366              		.file 37 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/no
+ 367              		.file 38 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/std_msg
+ 368              		.file 39 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/pu
+ 369              		.file 40 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/geometr
+ 370              		.file 41 "micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include/rclc/su
+ 371              		.file 42 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ 372              		.file 43 "/usr/include/newlib/stdio.h"
+ARM GAS  /tmp/ccBL55YG.s 			page 11
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 app_interact.c
+     /tmp/ccBL55YG.s:17     .text.cmd_vel_callback:0000000000000000 $t
+     /tmp/ccBL55YG.s:25     .text.cmd_vel_callback:0000000000000000 cmd_vel_callback
+     /tmp/ccBL55YG.s:75     .text.cmd_vel_callback:0000000000000028 $d
+     /tmp/ccBL55YG.s:82     .rodata.ProtocolProcessTask.str1.4:0000000000000000 $d
+     /tmp/ccBL55YG.s:102    .text.ProtocolProcessTask:0000000000000000 $t
+     /tmp/ccBL55YG.s:109    .text.ProtocolProcessTask:0000000000000000 ProtocolProcessTask
+     /tmp/ccBL55YG.s:305    .text.ProtocolProcessTask:0000000000000100 $d
+
+UNDEFINED SYMBOLS
+__aeabi_d2f
+target_vx
+target_vy
+target_wz
+__aeabi_f2d
+rmw_uros_set_custom_transport
+rcutils_get_zero_initialized_allocator
+rcutils_set_default_allocator
+rcutils_get_default_allocator
+rclc_support_init
+rclc_node_init_default
+rosidl_typesupport_c__get_message_type_support_handle__std_msgs__msg__Int32
+rclc_publisher_init_default
+rosidl_typesupport_c__get_message_type_support_handle__geometry_msgs__msg__Twist
+rclc_subscription_init_default
+rclc_executor_init
+rclc_executor_add_subscription
+rcl_publish
+rclc_executor_spin_some
+osDelay
+printf
+cubemx_transport_read
+cubemx_transport_write
+cubemx_transport_close
+cubemx_transport_open
+huart2
+microros_allocate
+microros_deallocate
+microros_reallocate
+microros_zero_allocate
+current_vx
+current_vy
+current_wz

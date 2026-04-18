@@ -1,0 +1,827 @@
+ARM GAS  /tmp/ccJ6r6vx.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"mpu6050.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.MPU6050_WriteReg,"ax",%progbits
+  16              		.align	1
+  17              		.global	MPU6050_WriteReg
+  18              		.arch armv7-m
+  19              		.syntax unified
+  20              		.thumb
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	MPU6050_WriteReg:
+  25              	.LVL0:
+  26              	.LFB65:
+  27              		.file 1 "Hardware/MPU6050/mpu6050.c"
+   1:Hardware/MPU6050/mpu6050.c **** #include "mpu6050.h"
+   2:Hardware/MPU6050/mpu6050.c **** #include "mpu6050_reg.h" // 刚才生成的那个寄存器头文件
+   3:Hardware/MPU6050/mpu6050.c **** #include "bsp_soft_i2c.h"       // 假设你已经有了 MyI2C_SendByte 等函数
+   4:Hardware/MPU6050/mpu6050.c **** #include <main.h>
+   5:Hardware/MPU6050/mpu6050.c **** 
+   6:Hardware/MPU6050/mpu6050.c **** // 核心：定义一个内部指针，用来记录当前 OLED 使用的是哪条 I2C 总线
+   7:Hardware/MPU6050/mpu6050.c **** static SoftI2C_Type *g_mpu6050_i2c = NULL;
+   8:Hardware/MPU6050/mpu6050.c **** 
+   9:Hardware/MPU6050/mpu6050.c **** // 辅助函数：写一个字节到指定寄存器
+  10:Hardware/MPU6050/mpu6050.c **** // 如果你还没封装这个，可以直接抄
+  11:Hardware/MPU6050/mpu6050.c **** void MPU6050_WriteReg(uint8_t RegAddress, uint8_t Data)
+  12:Hardware/MPU6050/mpu6050.c **** {
+  28              		.loc 1 12 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		.loc 1 12 1 is_stmt 0 view .LVU1
+  33 0000 70B5     		push	{r4, r5, r6, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 16
+  36              		.cfi_offset 4, -16
+  37              		.cfi_offset 5, -12
+  38              		.cfi_offset 6, -8
+  39              		.cfi_offset 14, -4
+  40 0002 0646     		mov	r6, r0
+  41 0004 0D46     		mov	r5, r1
+  13:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c);
+  42              		.loc 1 13 5 is_stmt 1 view .LVU2
+  43 0006 0E4C     		ldr	r4, .L3
+  44 0008 2068     		ldr	r0, [r4]
+  45              	.LVL1:
+ARM GAS  /tmp/ccJ6r6vx.s 			page 2
+
+
+  46              		.loc 1 13 5 is_stmt 0 view .LVU3
+  47 000a FFF7FEFF 		bl	MyI2C_Start
+  48              	.LVL2:
+  14:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, MPU6050_ADDR_AD0_LOW); // 发送设备地址+写 (0xD0)
+  49              		.loc 1 14 5 is_stmt 1 view .LVU4
+  50 000e D021     		movs	r1, #208
+  51 0010 2068     		ldr	r0, [r4]
+  52 0012 FFF7FEFF 		bl	MyI2C_SendByte
+  53              	.LVL3:
+  15:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+  54              		.loc 1 15 5 view .LVU5
+  55 0016 2068     		ldr	r0, [r4]
+  56 0018 FFF7FEFF 		bl	MyI2C_WaitAck
+  57              	.LVL4:
+  16:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, RegAddress);           // 发送寄存器地址
+  58              		.loc 1 16 5 view .LVU6
+  59 001c 3146     		mov	r1, r6
+  60 001e 2068     		ldr	r0, [r4]
+  61 0020 FFF7FEFF 		bl	MyI2C_SendByte
+  62              	.LVL5:
+  17:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+  63              		.loc 1 17 5 view .LVU7
+  64 0024 2068     		ldr	r0, [r4]
+  65 0026 FFF7FEFF 		bl	MyI2C_WaitAck
+  66              	.LVL6:
+  18:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, Data);                 // 发送数据
+  67              		.loc 1 18 5 view .LVU8
+  68 002a 2946     		mov	r1, r5
+  69 002c 2068     		ldr	r0, [r4]
+  70 002e FFF7FEFF 		bl	MyI2C_SendByte
+  71              	.LVL7:
+  19:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+  72              		.loc 1 19 5 view .LVU9
+  73 0032 2068     		ldr	r0, [r4]
+  74 0034 FFF7FEFF 		bl	MyI2C_WaitAck
+  75              	.LVL8:
+  20:Hardware/MPU6050/mpu6050.c ****     MyI2C_Stop(g_mpu6050_i2c);
+  76              		.loc 1 20 5 view .LVU10
+  77 0038 2068     		ldr	r0, [r4]
+  78 003a FFF7FEFF 		bl	MyI2C_Stop
+  79              	.LVL9:
+  21:Hardware/MPU6050/mpu6050.c **** }
+  80              		.loc 1 21 1 is_stmt 0 view .LVU11
+  81 003e 70BD     		pop	{r4, r5, r6, pc}
+  82              	.L4:
+  83              		.align	2
+  84              	.L3:
+  85 0040 00000000 		.word	.LANCHOR0
+  86              		.cfi_endproc
+  87              	.LFE65:
+  89              		.section	.text.MPU6050_ReadReg,"ax",%progbits
+  90              		.align	1
+  91              		.global	MPU6050_ReadReg
+  92              		.syntax unified
+  93              		.thumb
+  94              		.thumb_func
+  95              		.fpu softvfp
+ARM GAS  /tmp/ccJ6r6vx.s 			page 3
+
+
+  97              	MPU6050_ReadReg:
+  98              	.LVL10:
+  99              	.LFB66:
+  22:Hardware/MPU6050/mpu6050.c **** 
+  23:Hardware/MPU6050/mpu6050.c **** uint8_t MPU6050_ReadReg(uint8_t RegAddress)
+  24:Hardware/MPU6050/mpu6050.c **** {
+ 100              		.loc 1 24 1 is_stmt 1 view -0
+ 101              		.cfi_startproc
+ 102              		@ args = 0, pretend = 0, frame = 0
+ 103              		@ frame_needed = 0, uses_anonymous_args = 0
+ 104              		.loc 1 24 1 is_stmt 0 view .LVU13
+ 105 0000 38B5     		push	{r3, r4, r5, lr}
+ 106              	.LCFI1:
+ 107              		.cfi_def_cfa_offset 16
+ 108              		.cfi_offset 3, -16
+ 109              		.cfi_offset 4, -12
+ 110              		.cfi_offset 5, -8
+ 111              		.cfi_offset 14, -4
+ 112 0002 0546     		mov	r5, r0
+  25:Hardware/MPU6050/mpu6050.c ****     uint8_t Data;
+ 113              		.loc 1 25 5 is_stmt 1 view .LVU14
+  26:Hardware/MPU6050/mpu6050.c ****     
+  27:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c);
+ 114              		.loc 1 27 5 view .LVU15
+ 115 0004 144C     		ldr	r4, .L7
+ 116 0006 2068     		ldr	r0, [r4]
+ 117              	.LVL11:
+ 118              		.loc 1 27 5 is_stmt 0 view .LVU16
+ 119 0008 FFF7FEFF 		bl	MyI2C_Start
+ 120              	.LVL12:
+  28:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, MPU6050_ADDR_AD0_LOW); 
+ 121              		.loc 1 28 5 is_stmt 1 view .LVU17
+ 122 000c D021     		movs	r1, #208
+ 123 000e 2068     		ldr	r0, [r4]
+ 124 0010 FFF7FEFF 		bl	MyI2C_SendByte
+ 125              	.LVL13:
+  29:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 126              		.loc 1 29 5 view .LVU18
+ 127 0014 2068     		ldr	r0, [r4]
+ 128 0016 FFF7FEFF 		bl	MyI2C_WaitAck
+ 129              	.LVL14:
+  30:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, RegAddress);
+ 130              		.loc 1 30 5 view .LVU19
+ 131 001a 2946     		mov	r1, r5
+ 132 001c 2068     		ldr	r0, [r4]
+ 133 001e FFF7FEFF 		bl	MyI2C_SendByte
+ 134              	.LVL15:
+  31:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 135              		.loc 1 31 5 view .LVU20
+ 136 0022 2068     		ldr	r0, [r4]
+ 137 0024 FFF7FEFF 		bl	MyI2C_WaitAck
+ 138              	.LVL16:
+  32:Hardware/MPU6050/mpu6050.c ****     
+  33:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c);
+ 139              		.loc 1 33 5 view .LVU21
+ 140 0028 2068     		ldr	r0, [r4]
+ 141 002a FFF7FEFF 		bl	MyI2C_Start
+ARM GAS  /tmp/ccJ6r6vx.s 			page 4
+
+
+ 142              	.LVL17:
+  34:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, (MPU6050_ADDR_AD0_LOW) | 0x01); 
+ 143              		.loc 1 34 5 view .LVU22
+ 144 002e D121     		movs	r1, #209
+ 145 0030 2068     		ldr	r0, [r4]
+ 146 0032 FFF7FEFF 		bl	MyI2C_SendByte
+ 147              	.LVL18:
+  35:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 148              		.loc 1 35 5 view .LVU23
+ 149 0036 2068     		ldr	r0, [r4]
+ 150 0038 FFF7FEFF 		bl	MyI2C_WaitAck
+ 151              	.LVL19:
+  36:Hardware/MPU6050/mpu6050.c ****     Data = MyI2C_ReceiveByte(g_mpu6050_i2c);
+ 152              		.loc 1 36 5 view .LVU24
+ 153              		.loc 1 36 12 is_stmt 0 view .LVU25
+ 154 003c 2068     		ldr	r0, [r4]
+ 155 003e FFF7FEFF 		bl	MyI2C_ReceiveByte
+ 156              	.LVL20:
+ 157 0042 0546     		mov	r5, r0
+ 158              	.LVL21:
+  37:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendAck(g_mpu6050_i2c, 1); // 发送 NACK (结束读取)
+ 159              		.loc 1 37 5 is_stmt 1 view .LVU26
+ 160 0044 0121     		movs	r1, #1
+ 161 0046 2068     		ldr	r0, [r4]
+ 162 0048 FFF7FEFF 		bl	MyI2C_SendAck
+ 163              	.LVL22:
+  38:Hardware/MPU6050/mpu6050.c ****     MyI2C_Stop(g_mpu6050_i2c);
+ 164              		.loc 1 38 5 view .LVU27
+ 165 004c 2068     		ldr	r0, [r4]
+ 166 004e FFF7FEFF 		bl	MyI2C_Stop
+ 167              	.LVL23:
+  39:Hardware/MPU6050/mpu6050.c ****     
+  40:Hardware/MPU6050/mpu6050.c ****     return Data;
+ 168              		.loc 1 40 5 view .LVU28
+  41:Hardware/MPU6050/mpu6050.c **** }
+ 169              		.loc 1 41 1 is_stmt 0 view .LVU29
+ 170 0052 2846     		mov	r0, r5
+ 171 0054 38BD     		pop	{r3, r4, r5, pc}
+ 172              	.LVL24:
+ 173              	.L8:
+ 174              		.loc 1 41 1 view .LVU30
+ 175 0056 00BF     		.align	2
+ 176              	.L7:
+ 177 0058 00000000 		.word	.LANCHOR0
+ 178              		.cfi_endproc
+ 179              	.LFE66:
+ 181              		.section	.text.MPU6050_Init,"ax",%progbits
+ 182              		.align	1
+ 183              		.global	MPU6050_Init
+ 184              		.syntax unified
+ 185              		.thumb
+ 186              		.thumb_func
+ 187              		.fpu softvfp
+ 189              	MPU6050_Init:
+ 190              	.LVL25:
+ 191              	.LFB67:
+  42:Hardware/MPU6050/mpu6050.c **** 
+ARM GAS  /tmp/ccJ6r6vx.s 			page 5
+
+
+  43:Hardware/MPU6050/mpu6050.c **** // MPU6050 初始化函数
+  44:Hardware/MPU6050/mpu6050.c **** void MPU6050_Init(SoftI2C_Type *i2c_bus)
+  45:Hardware/MPU6050/mpu6050.c **** {
+ 192              		.loc 1 45 1 is_stmt 1 view -0
+ 193              		.cfi_startproc
+ 194              		@ args = 0, pretend = 0, frame = 0
+ 195              		@ frame_needed = 0, uses_anonymous_args = 0
+ 196              		.loc 1 45 1 is_stmt 0 view .LVU32
+ 197 0000 08B5     		push	{r3, lr}
+ 198              	.LCFI2:
+ 199              		.cfi_def_cfa_offset 8
+ 200              		.cfi_offset 3, -8
+ 201              		.cfi_offset 14, -4
+  46:Hardware/MPU6050/mpu6050.c ****     g_mpu6050_i2c = i2c_bus;
+ 202              		.loc 1 46 5 is_stmt 1 view .LVU33
+ 203              		.loc 1 46 19 is_stmt 0 view .LVU34
+ 204 0002 0C4B     		ldr	r3, .L11
+ 205 0004 1860     		str	r0, [r3]
+  47:Hardware/MPU6050/mpu6050.c **** 
+  48:Hardware/MPU6050/mpu6050.c ****     // 0. 初始化 I2C 底层 (SCL/SDA GPIO)
+  49:Hardware/MPU6050/mpu6050.c ****     MyI2C_Init(g_mpu6050_i2c); 
+ 206              		.loc 1 49 5 is_stmt 1 view .LVU35
+ 207 0006 FFF7FEFF 		bl	MyI2C_Init
+ 208              	.LVL26:
+  50:Hardware/MPU6050/mpu6050.c **** 
+  51:Hardware/MPU6050/mpu6050.c ****     // 1. 解除睡眠模式 (必须！)
+  52:Hardware/MPU6050/mpu6050.c ****     // 寄存器: PWR_MGMT_1 (0x6B)
+  53:Hardware/MPU6050/mpu6050.c ****     // 写入 0x00: 唤醒，使用内部 8MHz 时钟
+  54:Hardware/MPU6050/mpu6050.c ****     // (如果写 0x01 则使用 X轴陀螺仪作为时钟源，更稳一点，推荐 0x01)
+  55:Hardware/MPU6050/mpu6050.c ****     MPU6050_WriteReg(MPU6050_PWR_MGMT_1, 0x01);
+ 209              		.loc 1 55 5 view .LVU36
+ 210 000a 0121     		movs	r1, #1
+ 211 000c 6B20     		movs	r0, #107
+ 212 000e FFF7FEFF 		bl	MPU6050_WriteReg
+ 213              	.LVL27:
+  56:Hardware/MPU6050/mpu6050.c ****     // HAL_Delay(100);
+  57:Hardware/MPU6050/mpu6050.c **** 
+  58:Hardware/MPU6050/mpu6050.c ****     // 2. 设置采样率分频
+  59:Hardware/MPU6050/mpu6050.c ****     // 陀螺仪内部的“输出频率”固定为 1000Hz（即 1ms 产出一个数据）
+  60:Hardware/MPU6050/mpu6050.c ****     // 寄存器: SMPLRT_DIV (0x19)
+  61:Hardware/MPU6050/mpu6050.c ****     // 采样率 = 陀螺仪输出率 / (1 + SMPLRT_DIV)
+  62:Hardware/MPU6050/mpu6050.c ****     // 写入 0x00: 不分频，采样率最快 (1kHz 或 8kHz)
+  63:Hardware/MPU6050/mpu6050.c ****     MPU6050_WriteReg(MPU6050_SMPLRT_DIV, 0x00);
+ 214              		.loc 1 63 5 view .LVU37
+ 215 0012 0021     		movs	r1, #0
+ 216 0014 1920     		movs	r0, #25
+ 217 0016 FFF7FEFF 		bl	MPU6050_WriteReg
+ 218              	.LVL28:
+  64:Hardware/MPU6050/mpu6050.c **** 
+  65:Hardware/MPU6050/mpu6050.c ****     // 3. 配置低通滤波 (DLPF)
+  66:Hardware/MPU6050/mpu6050.c ****     // 寄存器: CONFIG (0x1A)
+  67:Hardware/MPU6050/mpu6050.c ****     // 写入 0x06: 5Hz 带宽 (滤波最强，数据最平滑，延迟约19ms)
+  68:Hardware/MPU6050/mpu6050.c ****     // 写入 0x00: 260Hz 带宽 (几乎无滤波，反应最快，也就是最抖)
+  69:Hardware/MPU6050/mpu6050.c ****     // 建议: 平衡车用 0x02 (94Hz，延迟约3ms)  或 0x03 (44Hz，延迟约4.9ms) 比较合�
+  70:Hardware/MPU6050/mpu6050.c ****     MPU6050_WriteReg(MPU6050_CONFIG, 0x03); 
+ 219              		.loc 1 70 5 view .LVU38
+ 220 001a 0321     		movs	r1, #3
+ARM GAS  /tmp/ccJ6r6vx.s 			page 6
+
+
+ 221 001c 1A20     		movs	r0, #26
+ 222 001e FFF7FEFF 		bl	MPU6050_WriteReg
+ 223              	.LVL29:
+  71:Hardware/MPU6050/mpu6050.c **** 
+  72:Hardware/MPU6050/mpu6050.c ****     // 4. 配置陀螺仪量程
+  73:Hardware/MPU6050/mpu6050.c ****     // 寄存器: GYRO_CONFIG (0x1B)
+  74:Hardware/MPU6050/mpu6050.c ****     // Bit[4:3] FS_SEL:
+  75:Hardware/MPU6050/mpu6050.c ****     // 0x00(±250dps), 0x08(±500), 0x10(±1000), 0x18(±2000)
+  76:Hardware/MPU6050/mpu6050.c ****     // 建议: ±2000dps (对应寄存器写 0x18)，防止快速旋转时爆表
+  77:Hardware/MPU6050/mpu6050.c ****     MPU6050_WriteReg(MPU6050_GYRO_CONFIG, 0x18);
+ 224              		.loc 1 77 5 view .LVU39
+ 225 0022 1821     		movs	r1, #24
+ 226 0024 1B20     		movs	r0, #27
+ 227 0026 FFF7FEFF 		bl	MPU6050_WriteReg
+ 228              	.LVL30:
+  78:Hardware/MPU6050/mpu6050.c **** 
+  79:Hardware/MPU6050/mpu6050.c ****     // 5. 配置加速度计量程
+  80:Hardware/MPU6050/mpu6050.c ****     // 寄存器: ACCEL_CONFIG (0x1C)
+  81:Hardware/MPU6050/mpu6050.c ****     // Bit[4:3] AFS_SEL:
+  82:Hardware/MPU6050/mpu6050.c ****     // 0x00(±2g), 0x08(±4g), 0x10(±8g), 0x18(±16g)
+  83:Hardware/MPU6050/mpu6050.c ****     // 建议: ±2g (0x00) 或 ±4g (0x08)。平衡车一般不会超过 2g 加速度。
+  84:Hardware/MPU6050/mpu6050.c ****     MPU6050_WriteReg(MPU6050_ACCEL_CONFIG, 0x00);
+ 229              		.loc 1 84 5 view .LVU40
+ 230 002a 0021     		movs	r1, #0
+ 231 002c 1C20     		movs	r0, #28
+ 232 002e FFF7FEFF 		bl	MPU6050_WriteReg
+ 233              	.LVL31:
+  85:Hardware/MPU6050/mpu6050.c **** }
+ 234              		.loc 1 85 1 is_stmt 0 view .LVU41
+ 235 0032 08BD     		pop	{r3, pc}
+ 236              	.L12:
+ 237              		.align	2
+ 238              	.L11:
+ 239 0034 00000000 		.word	.LANCHOR0
+ 240              		.cfi_endproc
+ 241              	.LFE67:
+ 243              		.section	.text.MPU6050_GetID,"ax",%progbits
+ 244              		.align	1
+ 245              		.global	MPU6050_GetID
+ 246              		.syntax unified
+ 247              		.thumb
+ 248              		.thumb_func
+ 249              		.fpu softvfp
+ 251              	MPU6050_GetID:
+ 252              	.LFB68:
+  86:Hardware/MPU6050/mpu6050.c **** 
+  87:Hardware/MPU6050/mpu6050.c **** // 获取设备 ID (用于测试通信是否正常)
+  88:Hardware/MPU6050/mpu6050.c **** // 返回值应该是 0x68
+  89:Hardware/MPU6050/mpu6050.c **** uint8_t MPU6050_GetID(void)
+  90:Hardware/MPU6050/mpu6050.c **** {
+ 253              		.loc 1 90 1 is_stmt 1 view -0
+ 254              		.cfi_startproc
+ 255              		@ args = 0, pretend = 0, frame = 0
+ 256              		@ frame_needed = 0, uses_anonymous_args = 0
+ 257 0000 38B5     		push	{r3, r4, r5, lr}
+ 258              	.LCFI3:
+ 259              		.cfi_def_cfa_offset 16
+ARM GAS  /tmp/ccJ6r6vx.s 			page 7
+
+
+ 260              		.cfi_offset 3, -16
+ 261              		.cfi_offset 4, -12
+ 262              		.cfi_offset 5, -8
+ 263              		.cfi_offset 14, -4
+  91:Hardware/MPU6050/mpu6050.c ****     uint8_t id;
+ 264              		.loc 1 91 5 view .LVU43
+  92:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c);
+ 265              		.loc 1 92 5 view .LVU44
+ 266 0002 144C     		ldr	r4, .L15
+ 267 0004 2068     		ldr	r0, [r4]
+ 268 0006 FFF7FEFF 		bl	MyI2C_Start
+ 269              	.LVL32:
+  93:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, MPU6050_ADDR_AD0_LOW); // 写地址
+ 270              		.loc 1 93 5 view .LVU45
+ 271 000a D021     		movs	r1, #208
+ 272 000c 2068     		ldr	r0, [r4]
+ 273 000e FFF7FEFF 		bl	MyI2C_SendByte
+ 274              	.LVL33:
+  94:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 275              		.loc 1 94 5 view .LVU46
+ 276 0012 2068     		ldr	r0, [r4]
+ 277 0014 FFF7FEFF 		bl	MyI2C_WaitAck
+ 278              	.LVL34:
+  95:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, MPU6050_WHO_AM_I);     // 寄存器 WHO_AM_I (0x75)
+ 279              		.loc 1 95 5 view .LVU47
+ 280 0018 7521     		movs	r1, #117
+ 281 001a 2068     		ldr	r0, [r4]
+ 282 001c FFF7FEFF 		bl	MyI2C_SendByte
+ 283              	.LVL35:
+  96:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 284              		.loc 1 96 5 view .LVU48
+ 285 0020 2068     		ldr	r0, [r4]
+ 286 0022 FFF7FEFF 		bl	MyI2C_WaitAck
+ 287              	.LVL36:
+  97:Hardware/MPU6050/mpu6050.c ****     
+  98:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c); // 重复起始信号 (Restart)
+ 288              		.loc 1 98 5 view .LVU49
+ 289 0026 2068     		ldr	r0, [r4]
+ 290 0028 FFF7FEFF 		bl	MyI2C_Start
+ 291              	.LVL37:
+  99:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, MPU6050_ADDR_AD0_LOW | 0x01); // 读地址 (0xD1)
+ 292              		.loc 1 99 5 view .LVU50
+ 293 002c D121     		movs	r1, #209
+ 294 002e 2068     		ldr	r0, [r4]
+ 295 0030 FFF7FEFF 		bl	MyI2C_SendByte
+ 296              	.LVL38:
+ 100:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 297              		.loc 1 100 5 view .LVU51
+ 298 0034 2068     		ldr	r0, [r4]
+ 299 0036 FFF7FEFF 		bl	MyI2C_WaitAck
+ 300              	.LVL39:
+ 101:Hardware/MPU6050/mpu6050.c ****     id = MyI2C_ReceiveByte(g_mpu6050_i2c);             // 接收 ID
+ 301              		.loc 1 101 5 view .LVU52
+ 302              		.loc 1 101 10 is_stmt 0 view .LVU53
+ 303 003a 2068     		ldr	r0, [r4]
+ 304 003c FFF7FEFF 		bl	MyI2C_ReceiveByte
+ 305              	.LVL40:
+ARM GAS  /tmp/ccJ6r6vx.s 			page 8
+
+
+ 306 0040 0546     		mov	r5, r0
+ 307              	.LVL41:
+ 102:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendAck(g_mpu6050_i2c, 1);                     // 发送 NACK (告诉它我不读了)
+ 308              		.loc 1 102 5 is_stmt 1 view .LVU54
+ 309 0042 0121     		movs	r1, #1
+ 310 0044 2068     		ldr	r0, [r4]
+ 311 0046 FFF7FEFF 		bl	MyI2C_SendAck
+ 312              	.LVL42:
+ 103:Hardware/MPU6050/mpu6050.c ****     MyI2C_Stop(g_mpu6050_i2c);
+ 313              		.loc 1 103 5 view .LVU55
+ 314 004a 2068     		ldr	r0, [r4]
+ 315 004c FFF7FEFF 		bl	MyI2C_Stop
+ 316              	.LVL43:
+ 104:Hardware/MPU6050/mpu6050.c ****     
+ 105:Hardware/MPU6050/mpu6050.c ****     return id;
+ 317              		.loc 1 105 5 view .LVU56
+ 106:Hardware/MPU6050/mpu6050.c **** }
+ 318              		.loc 1 106 1 is_stmt 0 view .LVU57
+ 319 0050 2846     		mov	r0, r5
+ 320 0052 38BD     		pop	{r3, r4, r5, pc}
+ 321              	.LVL44:
+ 322              	.L16:
+ 323              		.loc 1 106 1 view .LVU58
+ 324              		.align	2
+ 325              	.L15:
+ 326 0054 00000000 		.word	.LANCHOR0
+ 327              		.cfi_endproc
+ 328              	.LFE68:
+ 330              		.section	.text.MPU6050_ReadBlock,"ax",%progbits
+ 331              		.align	1
+ 332              		.global	MPU6050_ReadBlock
+ 333              		.syntax unified
+ 334              		.thumb
+ 335              		.thumb_func
+ 336              		.fpu softvfp
+ 338              	MPU6050_ReadBlock:
+ 339              	.LVL45:
+ 340              	.LFB69:
+ 107:Hardware/MPU6050/mpu6050.c **** 
+ 108:Hardware/MPU6050/mpu6050.c **** // 参数是6个指针，用来接收读取到的 6 个轴的数据
+ 109:Hardware/MPU6050/mpu6050.c **** // I2C 连续读取函数
+ 110:Hardware/MPU6050/mpu6050.c **** // RegAddress: 起始寄存器地址
+ 111:Hardware/MPU6050/mpu6050.c **** // Buffer: 存放读到数据的数组指针
+ 112:Hardware/MPU6050/mpu6050.c **** // Count: 要读多少个字节
+ 113:Hardware/MPU6050/mpu6050.c **** void MPU6050_ReadBlock(uint8_t RegAddress, uint8_t *Buffer, uint16_t Count)
+ 114:Hardware/MPU6050/mpu6050.c **** {
+ 341              		.loc 1 114 1 is_stmt 1 view -0
+ 342              		.cfi_startproc
+ 343              		@ args = 0, pretend = 0, frame = 0
+ 344              		@ frame_needed = 0, uses_anonymous_args = 0
+ 345              		.loc 1 114 1 is_stmt 0 view .LVU60
+ 346 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 347              	.LCFI4:
+ 348              		.cfi_def_cfa_offset 24
+ 349              		.cfi_offset 3, -24
+ 350              		.cfi_offset 4, -20
+ 351              		.cfi_offset 5, -16
+ARM GAS  /tmp/ccJ6r6vx.s 			page 9
+
+
+ 352              		.cfi_offset 6, -12
+ 353              		.cfi_offset 7, -8
+ 354              		.cfi_offset 14, -4
+ 355 0002 0746     		mov	r7, r0
+ 356 0004 0E46     		mov	r6, r1
+ 357 0006 1546     		mov	r5, r2
+ 115:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c);
+ 358              		.loc 1 115 5 is_stmt 1 view .LVU61
+ 359 0008 1C4C     		ldr	r4, .L24
+ 360 000a 2068     		ldr	r0, [r4]
+ 361              	.LVL46:
+ 362              		.loc 1 115 5 is_stmt 0 view .LVU62
+ 363 000c FFF7FEFF 		bl	MyI2C_Start
+ 364              	.LVL47:
+ 116:Hardware/MPU6050/mpu6050.c ****     // 1. 发送写地址 (0xD0)
+ 117:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, MPU6050_ADDR_AD0_LOW); 
+ 365              		.loc 1 117 5 is_stmt 1 view .LVU63
+ 366 0010 D021     		movs	r1, #208
+ 367 0012 2068     		ldr	r0, [r4]
+ 368 0014 FFF7FEFF 		bl	MyI2C_SendByte
+ 369              	.LVL48:
+ 118:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 370              		.loc 1 118 5 view .LVU64
+ 371 0018 2068     		ldr	r0, [r4]
+ 372 001a FFF7FEFF 		bl	MyI2C_WaitAck
+ 373              	.LVL49:
+ 119:Hardware/MPU6050/mpu6050.c ****     
+ 120:Hardware/MPU6050/mpu6050.c ****     // 2. 发送起始寄存器地址
+ 121:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, RegAddress); 
+ 374              		.loc 1 121 5 view .LVU65
+ 375 001e 3946     		mov	r1, r7
+ 376 0020 2068     		ldr	r0, [r4]
+ 377 0022 FFF7FEFF 		bl	MyI2C_SendByte
+ 378              	.LVL50:
+ 122:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 379              		.loc 1 122 5 view .LVU66
+ 380 0026 2068     		ldr	r0, [r4]
+ 381 0028 FFF7FEFF 		bl	MyI2C_WaitAck
+ 382              	.LVL51:
+ 123:Hardware/MPU6050/mpu6050.c ****     
+ 124:Hardware/MPU6050/mpu6050.c ****     // 3. 重复起始信号，准备开始读
+ 125:Hardware/MPU6050/mpu6050.c ****     MyI2C_Start(g_mpu6050_i2c);
+ 383              		.loc 1 125 5 view .LVU67
+ 384 002c 2068     		ldr	r0, [r4]
+ 385 002e FFF7FEFF 		bl	MyI2C_Start
+ 386              	.LVL52:
+ 126:Hardware/MPU6050/mpu6050.c ****     // 4. 发送读地址 (0xD1)
+ 127:Hardware/MPU6050/mpu6050.c ****     MyI2C_SendByte(g_mpu6050_i2c, (MPU6050_ADDR_AD0_LOW) | 0x01); 
+ 387              		.loc 1 127 5 view .LVU68
+ 388 0032 D121     		movs	r1, #209
+ 389 0034 2068     		ldr	r0, [r4]
+ 390 0036 FFF7FEFF 		bl	MyI2C_SendByte
+ 391              	.LVL53:
+ 128:Hardware/MPU6050/mpu6050.c ****     MyI2C_WaitAck(g_mpu6050_i2c);
+ 392              		.loc 1 128 5 view .LVU69
+ 393 003a 2068     		ldr	r0, [r4]
+ 394 003c FFF7FEFF 		bl	MyI2C_WaitAck
+ARM GAS  /tmp/ccJ6r6vx.s 			page 10
+
+
+ 395              	.LVL54:
+ 129:Hardware/MPU6050/mpu6050.c ****     
+ 130:Hardware/MPU6050/mpu6050.c ****     // 5. 循环接收数据
+ 131:Hardware/MPU6050/mpu6050.c ****     for (uint16_t i = 0; i < Count; i++) {
+ 396              		.loc 1 131 5 view .LVU70
+ 397              	.LBB2:
+ 398              		.loc 1 131 10 view .LVU71
+ 399              		.loc 1 131 19 is_stmt 0 view .LVU72
+ 400 0040 0024     		movs	r4, #0
+ 401              		.loc 1 131 5 view .LVU73
+ 402 0042 06E0     		b	.L18
+ 403              	.LVL55:
+ 404              	.L19:
+ 132:Hardware/MPU6050/mpu6050.c ****         // 接收一个字节
+ 133:Hardware/MPU6050/mpu6050.c ****         Buffer[i] = MyI2C_ReceiveByte(g_mpu6050_i2c);
+ 134:Hardware/MPU6050/mpu6050.c ****         
+ 135:Hardware/MPU6050/mpu6050.c ****         // 关键点：应答机制
+ 136:Hardware/MPU6050/mpu6050.c ****         if (i < Count - 1) {
+ 137:Hardware/MPU6050/mpu6050.c ****             MyI2C_SendAck(g_mpu6050_i2c, 0); // 如果还没读完，给应答(ACK)，告诉从机�
+ 138:Hardware/MPU6050/mpu6050.c ****         } else {
+ 139:Hardware/MPU6050/mpu6050.c ****             MyI2C_SendAck(g_mpu6050_i2c, 1); // 如果读完了，给非应答(NACK)，告诉从机
+ 405              		.loc 1 139 13 is_stmt 1 view .LVU74
+ 406 0044 0121     		movs	r1, #1
+ 407 0046 0D4B     		ldr	r3, .L24
+ 408 0048 1868     		ldr	r0, [r3]
+ 409 004a FFF7FEFF 		bl	MyI2C_SendAck
+ 410              	.LVL56:
+ 411              	.L20:
+ 131:Hardware/MPU6050/mpu6050.c ****         // 接收一个字节
+ 412              		.loc 1 131 37 discriminator 2 view .LVU75
+ 131:Hardware/MPU6050/mpu6050.c ****         // 接收一个字节
+ 413              		.loc 1 131 38 is_stmt 0 discriminator 2 view .LVU76
+ 414 004e 0134     		adds	r4, r4, #1
+ 415              	.LVL57:
+ 131:Hardware/MPU6050/mpu6050.c ****         // 接收一个字节
+ 416              		.loc 1 131 38 discriminator 2 view .LVU77
+ 417 0050 A4B2     		uxth	r4, r4
+ 418              	.LVL58:
+ 419              	.L18:
+ 131:Hardware/MPU6050/mpu6050.c ****         // 接收一个字节
+ 420              		.loc 1 131 26 is_stmt 1 discriminator 1 view .LVU78
+ 131:Hardware/MPU6050/mpu6050.c ****         // 接收一个字节
+ 421              		.loc 1 131 5 is_stmt 0 discriminator 1 view .LVU79
+ 422 0052 AC42     		cmp	r4, r5
+ 423 0054 0DD2     		bcs	.L23
+ 133:Hardware/MPU6050/mpu6050.c ****         
+ 424              		.loc 1 133 9 is_stmt 1 view .LVU80
+ 133:Hardware/MPU6050/mpu6050.c ****         
+ 425              		.loc 1 133 21 is_stmt 0 view .LVU81
+ 426 0056 094B     		ldr	r3, .L24
+ 427 0058 1868     		ldr	r0, [r3]
+ 428 005a FFF7FEFF 		bl	MyI2C_ReceiveByte
+ 429              	.LVL59:
+ 133:Hardware/MPU6050/mpu6050.c ****         
+ 430              		.loc 1 133 19 view .LVU82
+ 431 005e 3055     		strb	r0, [r6, r4]
+ 136:Hardware/MPU6050/mpu6050.c ****             MyI2C_SendAck(g_mpu6050_i2c, 0); // 如果还没读完，给应答(ACK)，告诉从机�
+ARM GAS  /tmp/ccJ6r6vx.s 			page 11
+
+
+ 432              		.loc 1 136 9 is_stmt 1 view .LVU83
+ 136:Hardware/MPU6050/mpu6050.c ****             MyI2C_SendAck(g_mpu6050_i2c, 0); // 如果还没读完，给应答(ACK)，告诉从机�
+ 433              		.loc 1 136 23 is_stmt 0 view .LVU84
+ 434 0060 6B1E     		subs	r3, r5, #1
+ 136:Hardware/MPU6050/mpu6050.c ****             MyI2C_SendAck(g_mpu6050_i2c, 0); // 如果还没读完，给应答(ACK)，告诉从机�
+ 435              		.loc 1 136 12 view .LVU85
+ 436 0062 9C42     		cmp	r4, r3
+ 437 0064 EEDA     		bge	.L19
+ 137:Hardware/MPU6050/mpu6050.c ****         } else {
+ 438              		.loc 1 137 13 is_stmt 1 view .LVU86
+ 439 0066 0021     		movs	r1, #0
+ 440 0068 044B     		ldr	r3, .L24
+ 441 006a 1868     		ldr	r0, [r3]
+ 442 006c FFF7FEFF 		bl	MyI2C_SendAck
+ 443              	.LVL60:
+ 444 0070 EDE7     		b	.L20
+ 445              	.L23:
+ 137:Hardware/MPU6050/mpu6050.c ****         } else {
+ 446              		.loc 1 137 13 is_stmt 0 view .LVU87
+ 447              	.LBE2:
+ 140:Hardware/MPU6050/mpu6050.c ****         }
+ 141:Hardware/MPU6050/mpu6050.c ****     }
+ 142:Hardware/MPU6050/mpu6050.c ****     
+ 143:Hardware/MPU6050/mpu6050.c ****     MyI2C_Stop(g_mpu6050_i2c);
+ 448              		.loc 1 143 5 is_stmt 1 view .LVU88
+ 449 0072 024B     		ldr	r3, .L24
+ 450 0074 1868     		ldr	r0, [r3]
+ 451 0076 FFF7FEFF 		bl	MyI2C_Stop
+ 452              	.LVL61:
+ 144:Hardware/MPU6050/mpu6050.c **** }
+ 453              		.loc 1 144 1 is_stmt 0 view .LVU89
+ 454 007a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 455              	.LVL62:
+ 456              	.L25:
+ 457              		.loc 1 144 1 view .LVU90
+ 458              		.align	2
+ 459              	.L24:
+ 460 007c 00000000 		.word	.LANCHOR0
+ 461              		.cfi_endproc
+ 462              	.LFE69:
+ 464              		.section	.text.MPU6050_GetData,"ax",%progbits
+ 465              		.align	1
+ 466              		.global	MPU6050_GetData
+ 467              		.syntax unified
+ 468              		.thumb
+ 469              		.thumb_func
+ 470              		.fpu softvfp
+ 472              	MPU6050_GetData:
+ 473              	.LVL63:
+ 474              	.LFB70:
+ 145:Hardware/MPU6050/mpu6050.c **** 
+ 146:Hardware/MPU6050/mpu6050.c **** void MPU6050_GetData(int16_t *AccX, int16_t *AccY, int16_t *AccZ, 
+ 147:Hardware/MPU6050/mpu6050.c ****                      int16_t *GyroX, int16_t *GyroY, int16_t *GyroZ)
+ 148:Hardware/MPU6050/mpu6050.c **** {
+ 475              		.loc 1 148 1 is_stmt 1 view -0
+ 476              		.cfi_startproc
+ 477              		@ args = 8, pretend = 0, frame = 16
+ARM GAS  /tmp/ccJ6r6vx.s 			page 12
+
+
+ 478              		@ frame_needed = 0, uses_anonymous_args = 0
+ 479              		.loc 1 148 1 is_stmt 0 view .LVU92
+ 480 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 481              	.LCFI5:
+ 482              		.cfi_def_cfa_offset 20
+ 483              		.cfi_offset 4, -20
+ 484              		.cfi_offset 5, -16
+ 485              		.cfi_offset 6, -12
+ 486              		.cfi_offset 7, -8
+ 487              		.cfi_offset 14, -4
+ 488 0002 85B0     		sub	sp, sp, #20
+ 489              	.LCFI6:
+ 490              		.cfi_def_cfa_offset 40
+ 491 0004 0746     		mov	r7, r0
+ 492 0006 0E46     		mov	r6, r1
+ 493 0008 1546     		mov	r5, r2
+ 494 000a 1C46     		mov	r4, r3
+ 149:Hardware/MPU6050/mpu6050.c ****     uint8_t Buffer[14]; // 创建一个缓存数组
+ 495              		.loc 1 149 5 is_stmt 1 view .LVU93
+ 150:Hardware/MPU6050/mpu6050.c ****     
+ 151:Hardware/MPU6050/mpu6050.c ****     // 从 ACCEL_XOUT_H (0x3B) 开始，连续读 14 个字节
+ 152:Hardware/MPU6050/mpu6050.c ****     // 顺序是: AccX_H, AccX_L, AccY_H, AccY_L, AccZ_H, AccZ_L, 
+ 153:Hardware/MPU6050/mpu6050.c ****     //        Temp_H, Temp_L (温度), 
+ 154:Hardware/MPU6050/mpu6050.c ****     //        GyroX_H, GyroX_L ...
+ 155:Hardware/MPU6050/mpu6050.c ****     MPU6050_ReadBlock(MPU6050_ACCEL_XOUT_H, Buffer, 14);
+ 496              		.loc 1 155 5 view .LVU94
+ 497 000c 0E22     		movs	r2, #14
+ 498              	.LVL64:
+ 499              		.loc 1 155 5 is_stmt 0 view .LVU95
+ 500 000e 6946     		mov	r1, sp
+ 501              	.LVL65:
+ 502              		.loc 1 155 5 view .LVU96
+ 503 0010 3B20     		movs	r0, #59
+ 504              	.LVL66:
+ 505              		.loc 1 155 5 view .LVU97
+ 506 0012 FFF7FEFF 		bl	MPU6050_ReadBlock
+ 507              	.LVL67:
+ 156:Hardware/MPU6050/mpu6050.c ****     
+ 157:Hardware/MPU6050/mpu6050.c ****     // 开始拼接数据 (高位左移8位 | 低位)
+ 158:Hardware/MPU6050/mpu6050.c ****     *AccX  = (int16_t)(Buffer[0] << 8 | Buffer[1]);
+ 508              		.loc 1 158 5 is_stmt 1 view .LVU98
+ 509              		.loc 1 158 30 is_stmt 0 view .LVU99
+ 510 0016 9DF80020 		ldrb	r2, [sp]	@ zero_extendqisi2
+ 511              		.loc 1 158 47 view .LVU100
+ 512 001a 9DF80130 		ldrb	r3, [sp, #1]	@ zero_extendqisi2
+ 513              		.loc 1 158 14 view .LVU101
+ 514 001e 43EA0223 		orr	r3, r3, r2, lsl #8
+ 515              		.loc 1 158 12 view .LVU102
+ 516 0022 3B80     		strh	r3, [r7]	@ movhi
+ 159:Hardware/MPU6050/mpu6050.c ****     *AccY  = (int16_t)(Buffer[2] << 8 | Buffer[3]);
+ 517              		.loc 1 159 5 is_stmt 1 view .LVU103
+ 518              		.loc 1 159 30 is_stmt 0 view .LVU104
+ 519 0024 9DF80220 		ldrb	r2, [sp, #2]	@ zero_extendqisi2
+ 520              		.loc 1 159 47 view .LVU105
+ 521 0028 9DF80330 		ldrb	r3, [sp, #3]	@ zero_extendqisi2
+ 522              		.loc 1 159 14 view .LVU106
+ 523 002c 43EA0223 		orr	r3, r3, r2, lsl #8
+ARM GAS  /tmp/ccJ6r6vx.s 			page 13
+
+
+ 524              		.loc 1 159 12 view .LVU107
+ 525 0030 3380     		strh	r3, [r6]	@ movhi
+ 160:Hardware/MPU6050/mpu6050.c ****     *AccZ  = (int16_t)(Buffer[4] << 8 | Buffer[5]);
+ 526              		.loc 1 160 5 is_stmt 1 view .LVU108
+ 527              		.loc 1 160 30 is_stmt 0 view .LVU109
+ 528 0032 9DF80420 		ldrb	r2, [sp, #4]	@ zero_extendqisi2
+ 529              		.loc 1 160 47 view .LVU110
+ 530 0036 9DF80530 		ldrb	r3, [sp, #5]	@ zero_extendqisi2
+ 531              		.loc 1 160 14 view .LVU111
+ 532 003a 43EA0223 		orr	r3, r3, r2, lsl #8
+ 533              		.loc 1 160 12 view .LVU112
+ 534 003e 2B80     		strh	r3, [r5]	@ movhi
+ 161:Hardware/MPU6050/mpu6050.c ****     
+ 162:Hardware/MPU6050/mpu6050.c ****     // Buffer[6] 和 Buffer[7] 是温度数据，这里我们跳过它
+ 163:Hardware/MPU6050/mpu6050.c ****     // 如果你以后想读温度，就是 temp = Buffer[6]<<8 | Buffer[7];
+ 164:Hardware/MPU6050/mpu6050.c ****     
+ 165:Hardware/MPU6050/mpu6050.c ****     *GyroX = (int16_t)(Buffer[8] << 8 | Buffer[9]);
+ 535              		.loc 1 165 5 is_stmt 1 view .LVU113
+ 536              		.loc 1 165 30 is_stmt 0 view .LVU114
+ 537 0040 9DF80820 		ldrb	r2, [sp, #8]	@ zero_extendqisi2
+ 538              		.loc 1 165 47 view .LVU115
+ 539 0044 9DF80930 		ldrb	r3, [sp, #9]	@ zero_extendqisi2
+ 540              		.loc 1 165 14 view .LVU116
+ 541 0048 43EA0223 		orr	r3, r3, r2, lsl #8
+ 542              		.loc 1 165 12 view .LVU117
+ 543 004c 2380     		strh	r3, [r4]	@ movhi
+ 166:Hardware/MPU6050/mpu6050.c ****     *GyroY = (int16_t)(Buffer[10] << 8 | Buffer[11]);
+ 544              		.loc 1 166 5 is_stmt 1 view .LVU118
+ 545              		.loc 1 166 30 is_stmt 0 view .LVU119
+ 546 004e 9DF80A20 		ldrb	r2, [sp, #10]	@ zero_extendqisi2
+ 547              		.loc 1 166 48 view .LVU120
+ 548 0052 9DF80B30 		ldrb	r3, [sp, #11]	@ zero_extendqisi2
+ 549              		.loc 1 166 14 view .LVU121
+ 550 0056 43EA0223 		orr	r3, r3, r2, lsl #8
+ 551              		.loc 1 166 12 view .LVU122
+ 552 005a 0A9A     		ldr	r2, [sp, #40]
+ 553 005c 1380     		strh	r3, [r2]	@ movhi
+ 167:Hardware/MPU6050/mpu6050.c ****     *GyroZ = (int16_t)(Buffer[12] << 8 | Buffer[13]);
+ 554              		.loc 1 167 5 is_stmt 1 view .LVU123
+ 555              		.loc 1 167 30 is_stmt 0 view .LVU124
+ 556 005e 9DF80C20 		ldrb	r2, [sp, #12]	@ zero_extendqisi2
+ 557              		.loc 1 167 48 view .LVU125
+ 558 0062 9DF80D30 		ldrb	r3, [sp, #13]	@ zero_extendqisi2
+ 559              		.loc 1 167 14 view .LVU126
+ 560 0066 43EA0223 		orr	r3, r3, r2, lsl #8
+ 561              		.loc 1 167 12 view .LVU127
+ 562 006a 0B9A     		ldr	r2, [sp, #44]
+ 563 006c 1380     		strh	r3, [r2]	@ movhi
+ 168:Hardware/MPU6050/mpu6050.c **** }
+ 564              		.loc 1 168 1 view .LVU128
+ 565 006e 05B0     		add	sp, sp, #20
+ 566              	.LCFI7:
+ 567              		.cfi_def_cfa_offset 20
+ 568              		@ sp needed
+ 569 0070 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 570              		.loc 1 168 1 view .LVU129
+ 571              		.cfi_endproc
+ARM GAS  /tmp/ccJ6r6vx.s 			page 14
+
+
+ 572              	.LFE70:
+ 574              		.section	.bss.g_mpu6050_i2c,"aw",%nobits
+ 575              		.align	2
+ 576              		.set	.LANCHOR0,. + 0
+ 579              	g_mpu6050_i2c:
+ 580 0000 00000000 		.space	4
+ 581              		.text
+ 582              	.Letext0:
+ 583              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 584              		.file 3 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xe.h"
+ 585              		.file 4 "BSP/Inc/bsp_soft_i2c.h"
+ARM GAS  /tmp/ccJ6r6vx.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 mpu6050.c
+     /tmp/ccJ6r6vx.s:16     .text.MPU6050_WriteReg:0000000000000000 $t
+     /tmp/ccJ6r6vx.s:24     .text.MPU6050_WriteReg:0000000000000000 MPU6050_WriteReg
+     /tmp/ccJ6r6vx.s:85     .text.MPU6050_WriteReg:0000000000000040 $d
+     /tmp/ccJ6r6vx.s:90     .text.MPU6050_ReadReg:0000000000000000 $t
+     /tmp/ccJ6r6vx.s:97     .text.MPU6050_ReadReg:0000000000000000 MPU6050_ReadReg
+     /tmp/ccJ6r6vx.s:177    .text.MPU6050_ReadReg:0000000000000058 $d
+     /tmp/ccJ6r6vx.s:182    .text.MPU6050_Init:0000000000000000 $t
+     /tmp/ccJ6r6vx.s:189    .text.MPU6050_Init:0000000000000000 MPU6050_Init
+     /tmp/ccJ6r6vx.s:239    .text.MPU6050_Init:0000000000000034 $d
+     /tmp/ccJ6r6vx.s:244    .text.MPU6050_GetID:0000000000000000 $t
+     /tmp/ccJ6r6vx.s:251    .text.MPU6050_GetID:0000000000000000 MPU6050_GetID
+     /tmp/ccJ6r6vx.s:326    .text.MPU6050_GetID:0000000000000054 $d
+     /tmp/ccJ6r6vx.s:331    .text.MPU6050_ReadBlock:0000000000000000 $t
+     /tmp/ccJ6r6vx.s:338    .text.MPU6050_ReadBlock:0000000000000000 MPU6050_ReadBlock
+     /tmp/ccJ6r6vx.s:460    .text.MPU6050_ReadBlock:000000000000007c $d
+     /tmp/ccJ6r6vx.s:465    .text.MPU6050_GetData:0000000000000000 $t
+     /tmp/ccJ6r6vx.s:472    .text.MPU6050_GetData:0000000000000000 MPU6050_GetData
+     /tmp/ccJ6r6vx.s:575    .bss.g_mpu6050_i2c:0000000000000000 $d
+     /tmp/ccJ6r6vx.s:579    .bss.g_mpu6050_i2c:0000000000000000 g_mpu6050_i2c
+
+UNDEFINED SYMBOLS
+MyI2C_Start
+MyI2C_SendByte
+MyI2C_WaitAck
+MyI2C_Stop
+MyI2C_ReceiveByte
+MyI2C_SendAck
+MyI2C_Init

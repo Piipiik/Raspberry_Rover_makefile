@@ -1,0 +1,496 @@
+ARM GAS  /tmp/cckzJIDg.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"pid.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.PID_Init,"ax",%progbits
+  16              		.align	1
+  17              		.global	PID_Init
+  18              		.arch armv7-m
+  19              		.syntax unified
+  20              		.thumb
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	PID_Init:
+  25              	.LVL0:
+  26              	.LFB65:
+  27              		.file 1 "Control/PID/pid.c"
+   1:Control/PID/pid.c **** #include "pid.h"
+   2:Control/PID/pid.c **** #include "main.h"
+   3:Control/PID/pid.c **** #include <math.h>
+   4:Control/PID/pid.c **** 
+   5:Control/PID/pid.c **** void PID_Init(PID_t *pid)
+   6:Control/PID/pid.c **** {
+  28              		.loc 1 6 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+   7:Control/PID/pid.c ****     pid[MOTOR_LF].Kp = 1200.0f;
+  33              		.loc 1 7 5 view .LVU1
+  34              		.loc 1 7 22 is_stmt 0 view .LVU2
+  35 0000 0749     		ldr	r1, .L2
+  36 0002 0160     		str	r1, [r0]	@ float
+   8:Control/PID/pid.c ****     pid[MOTOR_LF].Ki = 30000.0f;
+  37              		.loc 1 8 5 is_stmt 1 view .LVU3
+  38              		.loc 1 8 22 is_stmt 0 view .LVU4
+  39 0004 074A     		ldr	r2, .L2+4
+  40 0006 4260     		str	r2, [r0, #4]	@ float
+   9:Control/PID/pid.c ****     pid[MOTOR_LF].integral = 0;
+  41              		.loc 1 9 5 is_stmt 1 view .LVU5
+  42              		.loc 1 9 28 is_stmt 0 view .LVU6
+  43 0008 0023     		movs	r3, #0
+  44 000a 8360     		str	r3, [r0, #8]	@ float
+  10:Control/PID/pid.c **** 
+  11:Control/PID/pid.c ****     pid[MOTOR_LR].Kp = 1200.0f;
+  45              		.loc 1 11 5 is_stmt 1 view .LVU7
+  46              		.loc 1 11 22 is_stmt 0 view .LVU8
+  47 000c 8161     		str	r1, [r0, #24]	@ float
+ARM GAS  /tmp/cckzJIDg.s 			page 2
+
+
+  12:Control/PID/pid.c ****     pid[MOTOR_LR].Ki = 30000.0f;
+  48              		.loc 1 12 5 is_stmt 1 view .LVU9
+  49              		.loc 1 12 22 is_stmt 0 view .LVU10
+  50 000e C261     		str	r2, [r0, #28]	@ float
+  13:Control/PID/pid.c ****     pid[MOTOR_LR].integral = 0;
+  51              		.loc 1 13 5 is_stmt 1 view .LVU11
+  52              		.loc 1 13 28 is_stmt 0 view .LVU12
+  53 0010 0362     		str	r3, [r0, #32]	@ float
+  14:Control/PID/pid.c **** 
+  15:Control/PID/pid.c ****     pid[MOTOR_RF].Kp = 1200.0f;
+  54              		.loc 1 15 5 is_stmt 1 view .LVU13
+  55              		.loc 1 15 22 is_stmt 0 view .LVU14
+  56 0012 C160     		str	r1, [r0, #12]	@ float
+  16:Control/PID/pid.c ****     pid[MOTOR_RF].Ki = 30000.0f;
+  57              		.loc 1 16 5 is_stmt 1 view .LVU15
+  58              		.loc 1 16 22 is_stmt 0 view .LVU16
+  59 0014 0261     		str	r2, [r0, #16]	@ float
+  17:Control/PID/pid.c ****     pid[MOTOR_RF].integral = 0;
+  60              		.loc 1 17 5 is_stmt 1 view .LVU17
+  61              		.loc 1 17 28 is_stmt 0 view .LVU18
+  62 0016 4361     		str	r3, [r0, #20]	@ float
+  18:Control/PID/pid.c **** 
+  19:Control/PID/pid.c ****     pid[MOTOR_RR].Kp = 1200.0f;
+  63              		.loc 1 19 5 is_stmt 1 view .LVU19
+  64              		.loc 1 19 22 is_stmt 0 view .LVU20
+  65 0018 4162     		str	r1, [r0, #36]	@ float
+  20:Control/PID/pid.c ****     pid[MOTOR_RR].Ki = 30000.0f; // 给后轮加点积分，帮助消除稳态误差
+  66              		.loc 1 20 5 is_stmt 1 view .LVU21
+  67              		.loc 1 20 22 is_stmt 0 view .LVU22
+  68 001a 8262     		str	r2, [r0, #40]	@ float
+  21:Control/PID/pid.c ****     pid[MOTOR_RR].integral = 0;
+  69              		.loc 1 21 5 is_stmt 1 view .LVU23
+  70              		.loc 1 21 28 is_stmt 0 view .LVU24
+  71 001c C362     		str	r3, [r0, #44]	@ float
+  22:Control/PID/pid.c **** }
+  72              		.loc 1 22 1 view .LVU25
+  73 001e 7047     		bx	lr
+  74              	.L3:
+  75              		.align	2
+  76              	.L2:
+  77 0020 00009644 		.word	1150681088
+  78 0024 0060EA46 		.word	1189765120
+  79              		.cfi_endproc
+  80              	.LFE65:
+  82              		.global	__aeabi_fcmpgt
+  83              		.section	.text.Amplitude_Limit,"ax",%progbits
+  84              		.align	1
+  85              		.global	Amplitude_Limit
+  86              		.syntax unified
+  87              		.thumb
+  88              		.thumb_func
+  89              		.fpu softvfp
+  91              	Amplitude_Limit:
+  92              	.LVL1:
+  93              	.LFB67:
+  23:Control/PID/pid.c **** 
+  24:Control/PID/pid.c **** // === 全局 PID 参数 (方便在 debug 模式下实时修改) ===
+ARM GAS  /tmp/cckzJIDg.s 			page 3
+
+
+  25:Control/PID/pid.c **** // 经验值：GA25电机 + 12V
+  26:Control/PID/pid.c **** // Kp: 范围通常在 -100 到 -500 (或者是正数，取决于你的角度极性)
+  27:Control/PID/pid.c **** // Kd: 范围通常在 Kp 的 0.01 到 0.05 倍之间
+  28:Control/PID/pid.c **** // float Vertical_Kp = -0.0f; // 先给个小一点的值，正负号等会儿测
+  29:Control/PID/pid.c **** // float Vertical_Kd = -0.0f;   
+  30:Control/PID/pid.c **** 
+  31:Control/PID/pid.c **** // === 直立环 PD 控制 ===
+  32:Control/PID/pid.c **** // 输入：Pitch (当前角度), Gyro_Y (Y轴角速度)
+  33:Control/PID/pid.c **** // 输出：PWM 期望值
+  34:Control/PID/pid.c **** // int Vertical_Ring(float Pitch, float Gyro_Rate_DegPerSec)
+  35:Control/PID/pid.c **** // {
+  36:Control/PID/pid.c **** //     // 1. 计算角度偏差
+  37:Control/PID/pid.c **** //     float Angle_Err = Pitch - MECHANICAL_ZERO_ANGLE;
+  38:Control/PID/pid.c **** 
+  39:Control/PID/pid.c **** //     // 2. PD 公式
+  40:Control/PID/pid.c **** //     // 直立环 = Kp * 角度偏差 + Kd * 角速度
+  41:Control/PID/pid.c **** //     // (注意：因为角速度就是角度的微分，所以这里直接乘 Gyro_Rate_DegPerSe
+  42:Control/PID/pid.c **** //     int PWM_Out = (int)(Vertical_Kp * Angle_Err + Vertical_Kd * Gyro_Rate_DegPerSec);
+  43:Control/PID/pid.c **** 
+  44:Control/PID/pid.c **** //     return PWM_Out;
+  45:Control/PID/pid.c **** // }
+  46:Control/PID/pid.c **** 
+  47:Control/PID/pid.c **** // // === 速度环全局参数 ===
+  48:Control/PID/pid.c **** // // 调试经验：
+  49:Control/PID/pid.c **** // // Kp: 范围通常在 50 ~ 200 之间
+  50:Control/PID/pid.c **** // // Ki: 范围通常在 Kp 的 1/200 左右 (例如 Kp=100, Ki=0.5)
+  51:Control/PID/pid.c **** // float Velocity_Kp = 0;   
+  52:Control/PID/pid.c **** // float Velocity_Ki = 0;
+  53:Control/PID/pid.c **** 
+  54:Control/PID/pid.c **** // // 全局变量：速度环积分累计值 (必须是全局的，因为要累加)
+  55:Control/PID/pid.c **** // float Velocity_Integral = 0; 
+  56:Control/PID/pid.c **** 
+  57:Control/PID/pid.c **** // // 内部变量：保存上一次的编码器读数 (用于滤波)
+  58:Control/PID/pid.c **** // int Encoder_Err_Lowout_Last = 0;
+  59:Control/PID/pid.c **** 
+  60:Control/PID/pid.c **** // // === 速度环 PI 控制 ===
+  61:Control/PID/pid.c **** // // 输入：Target_Speed (遥控期望速度，停止时为0), Encoder_Left/Right (左右编码�
+  62:Control/PID/pid.c **** // // 输出：PWM 期望值 (这个值会叠加到直立环的 PWM 上)
+  63:Control/PID/pid.c **** // // 注意：该函数建议每 50ms 或 100ms 调用一次！不要 5ms 调用！
+  64:Control/PID/pid.c **** // int Velocity_Ring(int Target_Speed, int Actual_Speed)
+  65:Control/PID/pid.c **** // {
+  66:Control/PID/pid.c **** //     int Speed_Err = Actual_Speed - Target_Speed;
+  67:Control/PID/pid.c **** 
+  68:Control/PID/pid.c **** //     // 低通滤波
+  69:Control/PID/pid.c **** //     // 编码器读数是跳变的，直接用会干扰直立环。我们要让速度变化“�
+  70:Control/PID/pid.c **** //     // 0.7 是滤波系数 (新数据占 30%，旧数据占 70%)
+  71:Control/PID/pid.c **** //     int Encoder_Err_Lowout = (int)(0.4f * Encoder_Err_Lowout_Last + 0.6f * Speed_Err);
+  72:Control/PID/pid.c **** //     Encoder_Err_Lowout_Last = Encoder_Err_Lowout; // 更新旧值
+  73:Control/PID/pid.c **** 
+  74:Control/PID/pid.c **** //     // 积分项计算 (I) - 只有积分才能彻底消除静止时的漂移
+  75:Control/PID/pid.c **** //     if (Encoder_Err_Lowout > 2 || Encoder_Err_Lowout < -2) {
+  76:Control/PID/pid.c **** //     Velocity_Integral += Encoder_Err_Lowout; 
+  77:Control/PID/pid.c **** //     }
+  78:Control/PID/pid.c **** 
+  79:Control/PID/pid.c **** //     // 积分限幅
+  80:Control/PID/pid.c **** //     // 限制在 PWM 满幅的 1/2 或 1/3 左右
+  81:Control/PID/pid.c **** //     if(Velocity_Integral > 1700)  Velocity_Integral = 1700;
+ARM GAS  /tmp/cckzJIDg.s 			page 4
+
+
+  82:Control/PID/pid.c **** //     if(Velocity_Integral < -1700) Velocity_Integral = -1700;
+  83:Control/PID/pid.c ****     
+  84:Control/PID/pid.c **** //     // 如果车倒了（PWM为0），必须清除积分，否则扶起来时车轮会狂转
+  85:Control/PID/pid.c **** //     // 这里的判断需要在外部做，或者传入一个 Stop_Flag
+  86:Control/PID/pid.c **** 
+  87:Control/PID/pid.c **** //     // 6. PI 公式输出
+  88:Control/PID/pid.c **** //     // 速度环 = Kp * 偏差 + Ki * 积分
+  89:Control/PID/pid.c **** //     int PWM_Out = (int)(Velocity_Kp * Encoder_Err_Lowout + Velocity_Ki * Velocity_Integral);
+  90:Control/PID/pid.c **** 
+  91:Control/PID/pid.c **** //     return PWM_Out;
+  92:Control/PID/pid.c **** // }
+  93:Control/PID/pid.c **** 
+  94:Control/PID/pid.c **** // // === 转向环全局参数 ===
+  95:Control/PID/pid.c **** // // Kp: 范围通常很小，0.5 ~ 5 之间。
+  96:Control/PID/pid.c **** // float Turn_Kp = 1.0f; // 经验值，待微调
+  97:Control/PID/pid.c **** 
+  98:Control/PID/pid.c **** // // === 转向环 P 控制 ===
+  99:Control/PID/pid.c **** // // 输入：Gyro_Z_Rate (Z轴真实角速度), Target_Turn_Rate (遥控期望转弯速度，直�
+ 100:Control/PID/pid.c **** // // 输出：PWM 差速值 (加到左轮，减去右轮)
+ 101:Control/PID/pid.c **** // int Turn_Ring(float Target_Turn_Rate, float Gyro_Z_Rate)
+ 102:Control/PID/pid.c **** // {
+ 103:Control/PID/pid.c **** //     // 转向的本质就是维持 Z 轴的角速度为目标值
+ 104:Control/PID/pid.c **** //     float Turn_Err = Gyro_Z_Rate - Target_Turn_Rate;
+ 105:Control/PID/pid.c **** 
+ 106:Control/PID/pid.c **** //     // 只需要 P 控制即可，抗扰动
+ 107:Control/PID/pid.c **** //     int PWM_Out = (int)(Turn_Kp * Turn_Err);
+ 108:Control/PID/pid.c **** 
+ 109:Control/PID/pid.c **** //     return PWM_Out;
+ 110:Control/PID/pid.c **** // }
+ 111:Control/PID/pid.c **** 
+ 112:Control/PID/pid.c **** 
+ 113:Control/PID/pid.c **** // === 速度环 PI 控制 ===
+ 114:Control/PID/pid.c **** // 输入：Target_Speed (遥控期望速度，停止时为0), Encoder_Left/Right (左右编码器�
+ 115:Control/PID/pid.c **** // 输出：PWM 期望值 (这个值会叠加到直立环的 PWM 上)
+ 116:Control/PID/pid.c **** // 注意：该函数建议 10ms 调用一次
+ 117:Control/PID/pid.c **** float Velocity_Ring(PID_t *p, float Target_Speed, float Actual_Speed)
+ 118:Control/PID/pid.c **** {
+ 119:Control/PID/pid.c ****     // 1. 计算当前误差
+ 120:Control/PID/pid.c ****     float current_error = Target_Speed - Actual_Speed;
+ 121:Control/PID/pid.c **** 
+ 122:Control/PID/pid.c ****     // // 2. 积分项累加 (带有死区处理)
+ 123:Control/PID/pid.c ****     // // 只有当误差大于一定程度时才积分，防止原地“抽搐”
+ 124:Control/PID/pid.c ****     // if (current_error > 0.005f || current_error < -0.005f) {
+ 125:Control/PID/pid.c ****     //     p->integral += current_error * 0.01f; // 乘以控制周期，积分项单位是速度*�
+ 126:Control/PID/pid.c ****     // } else {
+ 127:Control/PID/pid.c ****     //     p->integral *= 0.8f; // 误差极小时清空积分，防止静止漂移
+ 128:Control/PID/pid.c ****     // }
+ 129:Control/PID/pid.c **** 
+ 130:Control/PID/pid.c ****     p->integral += current_error * 0.01f;
+ 131:Control/PID/pid.c ****     // 只在目标速度为0时清积分，防止静止漂移
+ 132:Control/PID/pid.c ****     if (Target_Speed == 0) {
+ 133:Control/PID/pid.c ****         p->integral *= 0.8f;
+ 134:Control/PID/pid.c **** }
+ 135:Control/PID/pid.c **** 
+ 136:Control/PID/pid.c ****     // 3. 积分限幅 (抗饱和)
+ 137:Control/PID/pid.c ****     p->integral = Amplitude_Limit(p->integral, 10.0f); 
+ 138:Control/PID/pid.c ****     
+ARM GAS  /tmp/cckzJIDg.s 			page 5
+
+
+ 139:Control/PID/pid.c ****     // 4. PI 公式输出
+ 140:Control/PID/pid.c ****     float out = (p->Kp * current_error) + (p->Ki * p->integral);
+ 141:Control/PID/pid.c **** 
+ 142:Control/PID/pid.c ****     // 5. 整体输出限幅 (对应你的定时器 ARR 值)
+ 143:Control/PID/pid.c ****     int16_t PWM_Out = (int16_t)Amplitude_Limit(out, 3599.0f);
+ 144:Control/PID/pid.c **** 
+ 145:Control/PID/pid.c ****     return PWM_Out;
+ 146:Control/PID/pid.c **** }
+ 147:Control/PID/pid.c **** 
+ 148:Control/PID/pid.c **** float Amplitude_Limit(float value, float max_limit)
+ 149:Control/PID/pid.c **** {
+  94              		.loc 1 149 1 is_stmt 1 view -0
+  95              		.cfi_startproc
+  96              		@ args = 0, pretend = 0, frame = 0
+  97              		@ frame_needed = 0, uses_anonymous_args = 0
+  98              		.loc 1 149 1 is_stmt 0 view .LVU27
+  99 0000 38B5     		push	{r3, r4, r5, lr}
+ 100              	.LCFI0:
+ 101              		.cfi_def_cfa_offset 16
+ 102              		.cfi_offset 3, -16
+ 103              		.cfi_offset 4, -12
+ 104              		.cfi_offset 5, -8
+ 105              		.cfi_offset 14, -4
+ 106 0002 0546     		mov	r5, r0
+ 107 0004 0C46     		mov	r4, r1
+ 150:Control/PID/pid.c ****     if (value > max_limit)
+ 108              		.loc 1 150 5 is_stmt 1 view .LVU28
+ 109              		.loc 1 150 8 is_stmt 0 view .LVU29
+ 110 0006 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 111              	.LVL2:
+ 112              		.loc 1 150 8 view .LVU30
+ 113 000a 38B9     		cbnz	r0, .L4
+ 151:Control/PID/pid.c ****     {
+ 152:Control/PID/pid.c ****         return max_limit;
+ 153:Control/PID/pid.c ****     }
+ 154:Control/PID/pid.c ****     else if (value < -max_limit)
+ 114              		.loc 1 154 10 is_stmt 1 view .LVU31
+ 115              		.loc 1 154 22 is_stmt 0 view .LVU32
+ 116 000c 04F10044 		add	r4, r4, #-2147483648
+ 117              	.LVL3:
+ 118              		.loc 1 154 13 view .LVU33
+ 119 0010 2946     		mov	r1, r5
+ 120 0012 2046     		mov	r0, r4
+ 121 0014 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 122              	.LVL4:
+ 123 0018 00B9     		cbnz	r0, .L4
+ 155:Control/PID/pid.c ****     {
+ 156:Control/PID/pid.c ****         return -max_limit;
+ 157:Control/PID/pid.c ****     }
+ 158:Control/PID/pid.c ****     else
+ 159:Control/PID/pid.c ****     {
+ 160:Control/PID/pid.c ****         return value;
+ 124              		.loc 1 160 16 view .LVU34
+ 125 001a 2C46     		mov	r4, r5
+ 126              	.L4:
+ 161:Control/PID/pid.c ****     }
+ 162:Control/PID/pid.c **** }
+ARM GAS  /tmp/cckzJIDg.s 			page 6
+
+
+ 127              		.loc 1 162 1 view .LVU35
+ 128 001c 2046     		mov	r0, r4
+ 129 001e 38BD     		pop	{r3, r4, r5, pc}
+ 130              		.loc 1 162 1 view .LVU36
+ 131              		.cfi_endproc
+ 132              	.LFE67:
+ 134              		.global	__aeabi_fsub
+ 135              		.global	__aeabi_fmul
+ 136              		.global	__aeabi_fadd
+ 137              		.global	__aeabi_fcmpeq
+ 138              		.global	__aeabi_f2iz
+ 139              		.global	__aeabi_i2f
+ 140              		.section	.text.Velocity_Ring,"ax",%progbits
+ 141              		.align	1
+ 142              		.global	Velocity_Ring
+ 143              		.syntax unified
+ 144              		.thumb
+ 145              		.thumb_func
+ 146              		.fpu softvfp
+ 148              	Velocity_Ring:
+ 149              	.LVL5:
+ 150              	.LFB66:
+ 118:Control/PID/pid.c ****     // 1. 计算当前误差
+ 151              		.loc 1 118 1 is_stmt 1 view -0
+ 152              		.cfi_startproc
+ 153              		@ args = 0, pretend = 0, frame = 0
+ 154              		@ frame_needed = 0, uses_anonymous_args = 0
+ 118:Control/PID/pid.c ****     // 1. 计算当前误差
+ 155              		.loc 1 118 1 is_stmt 0 view .LVU38
+ 156 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 157              	.LCFI1:
+ 158              		.cfi_def_cfa_offset 24
+ 159              		.cfi_offset 3, -24
+ 160              		.cfi_offset 4, -20
+ 161              		.cfi_offset 5, -16
+ 162              		.cfi_offset 6, -12
+ 163              		.cfi_offset 7, -8
+ 164              		.cfi_offset 14, -4
+ 165 0002 0446     		mov	r4, r0
+ 166 0004 0D46     		mov	r5, r1
+ 120:Control/PID/pid.c **** 
+ 167              		.loc 1 120 5 is_stmt 1 view .LVU39
+ 120:Control/PID/pid.c **** 
+ 168              		.loc 1 120 11 is_stmt 0 view .LVU40
+ 169 0006 1146     		mov	r1, r2
+ 170              	.LVL6:
+ 120:Control/PID/pid.c **** 
+ 171              		.loc 1 120 11 view .LVU41
+ 172 0008 2846     		mov	r0, r5
+ 173              	.LVL7:
+ 120:Control/PID/pid.c **** 
+ 174              		.loc 1 120 11 view .LVU42
+ 175 000a FFF7FEFF 		bl	__aeabi_fsub
+ 176              	.LVL8:
+ 120:Control/PID/pid.c **** 
+ 177              		.loc 1 120 11 view .LVU43
+ 178 000e 0746     		mov	r7, r0
+ARM GAS  /tmp/cckzJIDg.s 			page 7
+
+
+ 179              	.LVL9:
+ 130:Control/PID/pid.c ****     // 只在目标速度为0时清积分，防止静止漂移
+ 180              		.loc 1 130 5 is_stmt 1 view .LVU44
+ 130:Control/PID/pid.c ****     // 只在目标速度为0时清积分，防止静止漂移
+ 181              		.loc 1 130 34 is_stmt 0 view .LVU45
+ 182 0010 1649     		ldr	r1, .L16
+ 183 0012 FFF7FEFF 		bl	__aeabi_fmul
+ 184              	.LVL10:
+ 130:Control/PID/pid.c ****     // 只在目标速度为0时清积分，防止静止漂移
+ 185              		.loc 1 130 17 view .LVU46
+ 186 0016 A168     		ldr	r1, [r4, #8]	@ float
+ 187 0018 FFF7FEFF 		bl	__aeabi_fadd
+ 188              	.LVL11:
+ 189 001c 0646     		mov	r6, r0
+ 190 001e A060     		str	r0, [r4, #8]	@ float
+ 132:Control/PID/pid.c ****         p->integral *= 0.8f;
+ 191              		.loc 1 132 5 is_stmt 1 view .LVU47
+ 132:Control/PID/pid.c ****         p->integral *= 0.8f;
+ 192              		.loc 1 132 8 is_stmt 0 view .LVU48
+ 193 0020 0021     		movs	r1, #0
+ 194 0022 2846     		mov	r0, r5
+ 195 0024 FFF7FEFF 		bl	__aeabi_fcmpeq
+ 196              	.LVL12:
+ 197 0028 20B1     		cbz	r0, .L12
+ 133:Control/PID/pid.c **** }
+ 198              		.loc 1 133 9 is_stmt 1 view .LVU49
+ 133:Control/PID/pid.c **** }
+ 199              		.loc 1 133 21 is_stmt 0 view .LVU50
+ 200 002a 1149     		ldr	r1, .L16+4
+ 201 002c 3046     		mov	r0, r6
+ 202 002e FFF7FEFF 		bl	__aeabi_fmul
+ 203              	.LVL13:
+ 204 0032 A060     		str	r0, [r4, #8]	@ float
+ 205              	.L12:
+ 137:Control/PID/pid.c ****     
+ 206              		.loc 1 137 5 is_stmt 1 view .LVU51
+ 137:Control/PID/pid.c ****     
+ 207              		.loc 1 137 19 is_stmt 0 view .LVU52
+ 208 0034 0F49     		ldr	r1, .L16+8
+ 209 0036 A068     		ldr	r0, [r4, #8]	@ float
+ 210 0038 FFF7FEFF 		bl	Amplitude_Limit
+ 211              	.LVL14:
+ 212 003c 0546     		mov	r5, r0
+ 213              	.LVL15:
+ 137:Control/PID/pid.c ****     
+ 214              		.loc 1 137 17 view .LVU53
+ 215 003e A060     		str	r0, [r4, #8]	@ float
+ 140:Control/PID/pid.c **** 
+ 216              		.loc 1 140 5 is_stmt 1 view .LVU54
+ 140:Control/PID/pid.c **** 
+ 217              		.loc 1 140 24 is_stmt 0 view .LVU55
+ 218 0040 3946     		mov	r1, r7
+ 219 0042 2068     		ldr	r0, [r4]	@ float
+ 220 0044 FFF7FEFF 		bl	__aeabi_fmul
+ 221              	.LVL16:
+ 222 0048 0646     		mov	r6, r0
+ 140:Control/PID/pid.c **** 
+ARM GAS  /tmp/cckzJIDg.s 			page 8
+
+
+ 223              		.loc 1 140 50 view .LVU56
+ 224 004a 6168     		ldr	r1, [r4, #4]	@ float
+ 225 004c 2846     		mov	r0, r5
+ 226 004e FFF7FEFF 		bl	__aeabi_fmul
+ 227              	.LVL17:
+ 228 0052 0146     		mov	r1, r0
+ 140:Control/PID/pid.c **** 
+ 229              		.loc 1 140 11 view .LVU57
+ 230 0054 3046     		mov	r0, r6
+ 231 0056 FFF7FEFF 		bl	__aeabi_fadd
+ 232              	.LVL18:
+ 143:Control/PID/pid.c **** 
+ 233              		.loc 1 143 5 is_stmt 1 view .LVU58
+ 143:Control/PID/pid.c **** 
+ 234              		.loc 1 143 32 is_stmt 0 view .LVU59
+ 235 005a 0749     		ldr	r1, .L16+12
+ 236 005c FFF7FEFF 		bl	Amplitude_Limit
+ 237              	.LVL19:
+ 143:Control/PID/pid.c **** 
+ 238              		.loc 1 143 13 view .LVU60
+ 239 0060 FFF7FEFF 		bl	__aeabi_f2iz
+ 240              	.LVL20:
+ 145:Control/PID/pid.c **** }
+ 241              		.loc 1 145 5 is_stmt 1 view .LVU61
+ 145:Control/PID/pid.c **** }
+ 242              		.loc 1 145 12 is_stmt 0 view .LVU62
+ 243 0064 00B2     		sxth	r0, r0
+ 145:Control/PID/pid.c **** }
+ 244              		.loc 1 145 12 view .LVU63
+ 245 0066 FFF7FEFF 		bl	__aeabi_i2f
+ 246              	.LVL21:
+ 146:Control/PID/pid.c **** 
+ 247              		.loc 1 146 1 view .LVU64
+ 248 006a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 249              	.LVL22:
+ 250              	.L17:
+ 146:Control/PID/pid.c **** 
+ 251              		.loc 1 146 1 view .LVU65
+ 252              		.align	2
+ 253              	.L16:
+ 254 006c 0AD7233C 		.word	1008981770
+ 255 0070 CDCC4C3F 		.word	1061997773
+ 256 0074 00002041 		.word	1092616192
+ 257 0078 00F06045 		.word	1163980800
+ 258              		.cfi_endproc
+ 259              	.LFE66:
+ 261              		.text
+ 262              	.Letext0:
+ 263              		.file 2 "Control/PID/pid.h"
+ 264              		.file 3 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 265              		.file 4 "Core/Inc/global.h"
+ARM GAS  /tmp/cckzJIDg.s 			page 9
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 pid.c
+     /tmp/cckzJIDg.s:16     .text.PID_Init:0000000000000000 $t
+     /tmp/cckzJIDg.s:24     .text.PID_Init:0000000000000000 PID_Init
+     /tmp/cckzJIDg.s:77     .text.PID_Init:0000000000000020 $d
+     /tmp/cckzJIDg.s:84     .text.Amplitude_Limit:0000000000000000 $t
+     /tmp/cckzJIDg.s:91     .text.Amplitude_Limit:0000000000000000 Amplitude_Limit
+     /tmp/cckzJIDg.s:141    .text.Velocity_Ring:0000000000000000 $t
+     /tmp/cckzJIDg.s:148    .text.Velocity_Ring:0000000000000000 Velocity_Ring
+     /tmp/cckzJIDg.s:254    .text.Velocity_Ring:000000000000006c $d
+
+UNDEFINED SYMBOLS
+__aeabi_fcmpgt
+__aeabi_fsub
+__aeabi_fmul
+__aeabi_fadd
+__aeabi_fcmpeq
+__aeabi_f2iz
+__aeabi_i2f

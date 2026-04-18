@@ -1,0 +1,16 @@
+{
+    "version": "2.0",
+    "tasks": [
+        {
+            "label": "✅ 一键编译 + J-Link烧录",
+            "type": "shell",
+            "command": "make clean && make -j4 && echo -e 'erase\\nloadbin build/Raspberry_Rover.bin,0x08000000\\nr\\nq' | JLinkExe -device STM32F103XE -if SWD -speed 4000 -autoconnect 1",
+            "args": [],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

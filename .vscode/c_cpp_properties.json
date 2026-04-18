@@ -1,0 +1,40 @@
+{
+    "configurations": [
+        {
+            "name": "STM32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                "${workspaceFolder}/Drivers/CMSIS/Include",
+                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/include",
+                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2",
+                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3",
+                "${workspaceFolder}/BSP/Inc",
+                "${workspaceFolder}/Control/FILTER",
+                "${workspaceFolder}/Control/kinematics",
+                "${workspaceFolder}/Control/PID",
+                "${workspaceFolder}/Hardware/MPU6050",
+                "${workspaceFolder}/Hardware/OLED",
+                "${workspaceFolder}/Hardware/Motor",
+                "${workspaceFolder}/Hardware/Bluetooth",
+                "${workspaceFolder}/App",
+                "${workspaceFolder}/App/Display",
+                "${workspaceFolder}/App/Interact",
+                "${workspaceFolder}/App/Monitor",
+                "${workspaceFolder}/App/Motion",
+                "${workspaceFolder}/App/Sensor"
+            ],
+            "defines": [
+                "USE_HAL_DRIVER",
+                "STM32F103xE"
+            ],
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm"
+        }
+    ],
+    "version": 4
+}
